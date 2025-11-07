@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Add Location{% endblock %}
+{% block content %}
+<h2>Add a Location</h2>
+<form method="post">
+  <label for="name">Name</label>
+<!-- name shown to users becomes request.form of what they input -->
+  <input id="name" name="name" required type="text" placeholder="e.g. Example Beach">
+  <label for="lat">Latitude</label>
+<!-- users input coordinates from looking it up online of any location in ireland -->
+  <input id="lat" name="lat" required type="number" step="any">
+  <label for="lon">Longitude</label>
+  <input id="lon" name="lon" required type="number" step="any">
+  <label for="notes">Notes</label>
+<!-- optional notes about location for users -->
+  <input id="notes" name="notes" type="text">
+  <button class="btn" type="submit">Save</button>
+</form>
+{% endblock %}

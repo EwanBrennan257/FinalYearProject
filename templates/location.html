@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ location.name }} · Cork Photographers{% endblock %}
+<!-- everything below renders inside base.html template-->
+{% block content %}
+<h2 style="margin-top:0">{{ location.name }}</h2>
+<p class="muted">Lat {{ "%.5f"|format(location.lat) }}, Lon {{ "%.5f"|format(location.lon) }}</p>
+<!-- shows sunrise and sunset for location -->
+<div class="grid" style="margin-top:1rem">
+  <section class="card">
+    <h3>Sunrise / Sunset (today)</h3>
+    {% if sun %}
+      <p>Sunrise: <strong>{{ sun.sunrise }}</strong></p>
+      <p>Sunset: <strong>{{ sun.sunset }}</strong></p>
+    {% else %}
+      <p class="muted">No sun data.</p>
+    {% endif %}
+  </section>
+<!-- table of weather for next few hours, get_weather_hours returns a list of dicts
+ only shows first six rows to keep small-->
+  <section class="card">
+    <h3>Weather (next few hours)</h3>
+    {% if weather %}
+      <table>
+        <thead><tr><th>Time</th><th>°C</th><th>Wind</th><th>Rain</th></tr></thead>
+        <tbody>
+        {% for row in weather[:6] %}
+          <tr><td>{{ row.time }}</td><td>{{ row.temp }}</td><td>{{ row.wind }}</td><td>{{ row.precip }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">No weather data.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

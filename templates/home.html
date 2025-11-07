@@ -1,0 +1,23 @@
+{% extends "base.html" %} <!-- use base.html as the groundworks for style-->
+<!-- sets the title for the page-->
+{% block title %}Locations · Cork Photographers{% endblock %}
+{% block content %}
+<section class="grid">
+  {% for loc in locations %} <!-- loops over the list of locations from app.py-->
+  <article class="card">
+    <h2 style="margin:.2rem 0">{{ loc.name }}</h2>
+    <!-- shows coordinates with 5 decimal places-->
+    <p class="muted">Lat {{ "%.5f"|format(loc.lat) }}, Lon {{ "%.5f"|format(loc.lon) }}</p>
+    <!-- shows notes if they were used-->
+    {% if loc.notes %}<p class="muted">{{ loc.notes }}</p>{% endif %}
+    <!-- link to detail page for location using slug-->
+    <a class="btn" href="{{ url_for('location_detail', slug=loc.slug) }}">Open</a>
+  </article>
+  {% else %}
+  <!-- if list is empty tells user to add one-->
+  <div class="card">
+    <p>No locations yet. <a href="{{ url_for('add_location') }}">Add one</a>.</p>
+  </div>
+  {% endfor %}
+</section>
+{% endblock %}
