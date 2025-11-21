@@ -32,5 +32,32 @@
       <p class="muted">No weather data.</p>
     {% endif %}
   </section>
+  <section class="card">
+  <h3>Tide (Cork — today)</h3>
+  {% if tide_error %}
+    <p class="muted">{{ tide_error }}</p>
+  {% else %}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div>
+        <h4>High</h4>
+        <ul>
+          {% for t in high_tides %}
+            <li>{{ t.time }}{% if t.height is not none %} — {{ '%.2f'|format(t.height) }} m{% endif %}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div>
+        <h4>Low</h4>
+        <ul>
+          {% for t in low_tides %}
+            <li>{{ t.time }}{% if t.height is not none %} — {{ '%.2f'|format(t.height) }} m{% endif %}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:.5rem">Source: tide-forecast.com — for planning only.</p>
+  {% endif %}
+</section>
+
 </div>
 {% endblock %}

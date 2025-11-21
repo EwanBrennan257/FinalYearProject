@@ -1,0 +1,18 @@
+{% extends "base.html" %}<!-- extends base.html-->
+{% block title %}Log in{% endblock %}
+{% block content %}
+<h2>Log in</h2>
+<form method="post">
+  <label for="email">Email</label><!-- key used when form data is submitted-->
+  <input id="email" name="email" type="email" required>
+
+  <label for="password">Password</label><!-- key for submission-->
+  <input id="password" name="password" type="password" required>
+
+  <button class="btn" type="submit">Log in</button>
+</form>
+
+{% if message %}
+  <p class="muted">{{ message }}</p>
+{% endif %}
+{% endblock %}

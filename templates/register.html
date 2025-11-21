@@ -1,0 +1,18 @@
+{% extends "base.html" %}<!-- extends base.html-->
+{% block title %}Register{% endblock %}
+{% block content %}
+<h2>Create an account</h2>
+<form method="post">
+  <label for="email">Email</label><!-- key used when form data is submitted-->
+  <input id="email" name="email" type="email" required>
+
+  <label for="password">Password</label><!-- key for submission-->
+  <input id="password" name="password" type="password" required>
+
+  <button class="btn" type="submit">Register</button>
+</form>
+
+{% if message %}
+  <p class="muted">{{ message }}</p>
+{% endif %}
+{% endblock %}
