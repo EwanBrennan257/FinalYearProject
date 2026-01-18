@@ -15,4 +15,10 @@
 {% if message %}
   <p class="muted">{{ message }}</p>
 {% endif %}
+
+<p class="muted" style="margin-top:1rem;">
+  Didn't get your confirmation email?
+  <a href="{{ url_for('resend_confirmation') }}">Resend confirmation</a>
+</p>
 {% endblock %}
+

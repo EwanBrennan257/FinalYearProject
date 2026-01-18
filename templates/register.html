@@ -2,6 +2,11 @@
 {% block title %}Register{% endblock %}
 {% block content %}
 <h2>Create an account</h2>
+
+<p class="muted">
+  After you register, we'll send you an email with a confirmation link. You must confirm your email before you can log in.
+</p>
+
 <form method="post">
   <label for="email">Email</label><!-- key used when form data is submitted-->
   <input id="email" name="email" type="email" required>
@@ -15,4 +20,9 @@
 {% if message %}
   <p class="muted">{{ message }}</p>
 {% endif %}
+
+<p class="muted" style="margin-top:1rem;">
+  Already have an account? <a href="{{ url_for('login') }}">Log in</a>
+</p>
 {% endblock %}
+

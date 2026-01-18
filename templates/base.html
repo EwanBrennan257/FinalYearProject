@@ -17,6 +17,12 @@
     input { width:100%; padding:.5rem; border:1px solid #ddd; border-radius:8px; }
     table { width:100%; border-collapse: collapse; }
     th, td { padding:.4rem; border-bottom:1px solid #eee; }
+
+    .flash { margin: .75rem 0; padding: .6rem .8rem; border:1px solid #ddd; border-radius:10px; }
+    .flash.success { border-color: #b7e3c7; }
+    .flash.info { border-color: #bcd7ff; }
+    .flash.warning { border-color: #ffe6a6; }
+    .flash.danger { border-color: #ffb8b8; }
   </style>
 </head>
 <body>
@@ -39,6 +45,15 @@
 </nav>
 
     </header>
+
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% if msgs %}
+        {% for category, msg in msgs %}
+          <div class="flash {{ category }}">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
     {% block content %}{% endblock %}
   </div>
 </body>

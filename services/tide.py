@@ -22,8 +22,8 @@ def _parse_rows_for_events(rows: List[str]) -> Dict[str, List[Dict[str, Any]]]:#
 
     #regex pattern to match time format \b word boundary, \d digit, 1 or 2 occurences
     TIME_RE = re.compile(r"\b(\d{1,2}:\d{2}\s?(?:am|pm)?)\b", re.I)
-    # Regex pattern to match height like "3.1 m", "0.8m", or negative "-0.5 m"
-    # -? = optional minus sign, \d+ = one or more digits
+    #regex pattern to match height like "3.1 m", "0.8m", or negative "-0.5 m"
+    #-? = optional minus sign, \d+ = one or more digits
     HT_RE   = re.compile(r"(-?\d+(?:\.\d+)?)\s?m\b", re.I)
 
     for txt in rows:#loop through each text row
@@ -46,7 +46,7 @@ def _parse_rows_for_events(rows: List[str]) -> Dict[str, List[Dict[str, Any]]]:#
         else:
             lows.append(item)
 
-    # keep it tidy: usually up to 2 highs, 2 lows
+    #keep it tidy usually up to 2 highs, 2 lows
     return {"high_tides": highs[:2], "low_tides": lows[:2]}
 
 
