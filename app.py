@@ -1,8 +1,10 @@
 import os, datetime as dt
 
+BASE = os.path.dirname(os.path.abspath(__file__))
+
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv(os.path.join(BASE, ".env"))
 except Exception:
     pass
 
