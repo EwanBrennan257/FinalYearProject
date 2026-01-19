@@ -24,6 +24,7 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 from services.tide import get_cork_tides 
 
+from sqlalchemy.sql import func
 
 def _env_bool(key: str, default: bool) -> bool:
     v = os.getenv(key)
@@ -67,6 +68,12 @@ class Location(db.Model): #tabke for photography spots
     lat = db.Column(db.Float, nullable=False) #coordinates for location
     lon = db.Column(db.Float, nullable=False) #coordinates for location
     notes = db.Column(db.String(400)) #fact or notes while creating location can be included 
+    reviews = db.relationship(
+        "Review",
+        backref="location",
+        lazy=True,
+        cascade="all, delete-orphan"
+    )
 
 class User(UserMixin, db.Model):#creates sqlalchemy model for users, usermixin helps flask manager login users
     id = db.Column(db.Integer, primary_key=True)
@@ -83,6 +90,24 @@ class User(UserMixin, db.Model):#creates sqlalchemy model for users, usermixin h
 
     def check_password(self, pw: str) -> bool:# validates if entered password is correct
         return check_password_hash(self.password_hash, pw)
+    
+    reviews = db.relationship(
+        "Review",
+        backref="user",
+        lazy=True,
+        cascade="all, delete-orphan"
+    )
+    
+class Review(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    location_id = db.Column(db.Integer, db.ForeignKey("location.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+
+    rating = db.Column(db.Integer, nullable=False)  # 1..5
+    body = db.Column(db.String(1000), nullable=False)
+
+    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow, nullable=False)
     
 @login_manager.user_loader#required by flask login returns corresponding user so that same user works on later requests
 def load_user(user_id):
@@ -206,6 +231,22 @@ def location_detail(slug):
 
     tide_info = get_cork_tides()
 
+    reviews = (
+        Review.query
+        .filter_by(location_id=loc.id)
+        .order_by(Review.created_at.desc())
+        .all()
+    )
+
+    # average rating (None if no reviews)
+    avg_rating = (
+        db.session.query(func.avg(Review.rating))
+        .filter(Review.location_id == loc.id)
+        .scalar()
+    )
+    avg_rating = float(avg_rating) if avg_rating is not None else None
+    review_count = len(reviews)
+
     return render_template( #renders the template and we give what data it requires
         "location.html",
         location=loc,
@@ -214,7 +255,11 @@ def location_detail(slug):
         high_tides=tide_info["high_tides"],
         low_tides=tide_info["low_tides"],
         tide_error=tide_info["error"],
+        reviews=reviews,
+        avg_rating=avg_rating,
+        review_count=review_count,
     )
+
 
 @app.route("/auth/register", methods=["GET", "POST"])#route decorator defines endpoint thats acepts get and post requests
 def register():
@@ -297,6 +342,39 @@ def resend_confirmation():
             return redirect(url_for("login"))
 
     return render_template("resend_confirmation.html", message=message)
+
+@app.route("/l/<slug>/review", methods=["POST"])
+@login_required
+def add_review(slug):
+    loc = Location.query.filter_by(slug=slug).first_or_404()
+
+    rating_raw = (request.form.get("rating") or "").strip()
+    body = (request.form.get("body") or "").strip()
+
+    # Validate rating
+    try:
+        rating = int(rating_raw)
+    except ValueError:
+        rating = 0
+
+    if rating < 1 or rating > 5:
+        flash("Rating must be between 1 and 5 stars.", "warning")
+        return redirect(url_for("location_detail", slug=slug))
+
+    if not body:
+        flash("Please write a short review comment.", "warning")
+        return redirect(url_for("location_detail", slug=slug))
+
+    if len(body) > 1000:
+        flash("Review is too long (max 1000 characters).", "warning")
+        return redirect(url_for("location_detail", slug=slug))
+
+    r = Review(location_id=loc.id, user_id=current_user.id, rating=rating, body=body)
+    db.session.add(r)
+    db.session.commit()
+
+    flash("Review added.", "success")
+    return redirect(url_for("location_detail", slug=slug))
 
 
 @app.route("/auth/login", methods=["GET", "POST"])
