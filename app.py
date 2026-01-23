@@ -1,13 +1,14 @@
+#datetime used for dates and times
 import os, datetime as dt
-
+#use this to find other files in relation to this locaiton
 BASE = os.path.dirname(os.path.abspath(__file__))
-
+#trys to load api keys and password from .env
 try:
-    from dotenv import load_dotenv
-    load_dotenv(os.path.join(BASE, ".env"))
-except Exception:
+    from dotenv import load_dotenv#imports function from .env
+    load_dotenv(os.path.join(BASE, ".env"))#loads the function from project folder
+except Exception:#incase of error ignore and continue
     pass
-
+#import all flask items
 from flask import Flask, render_template, request, redirect, url_for, abort, flash #flask object, render template renders jinja template/ html pages,
 #request redirect form handling and redirects
 from flask_sqlalchemy import SQLAlchemy # handles sqlite 
@@ -15,53 +16,70 @@ from flask_sqlalchemy import SQLAlchemy # handles sqlite
 from services.sun import get_sun_times#API calls in service folder 
 from services.weather import get_weather_hours
 
-from flask_login import ( #login manager
-    LoginManager, login_user, login_required,
+from flask_login import ( #login manager used for whos logged in
+    LoginManager, login_user, login_required,#logout for people who logout 
     logout_user, current_user, UserMixin
 )
+#has passwords so they can't be read
 from werkzeug.security import generate_password_hash, check_password_hash
+#used for creating custom decorators
 from functools import wraps
+#email sending tool
 from flask_mail import Mail, Message
+#used for creating secure confirmation token makes encrypted tickets that expire
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
-
+#import tide info
 from services.tide import get_cork_tides 
-
+#import SQL functions
 from sqlalchemy.sql import func
 
+#reads enviroment variables as true or false
 def _env_bool(key: str, default: bool) -> bool:
+    #get enviroment variable
     v = os.getenv(key)
+    #if it doesn't exist use default
     if v is None:
         return default
+    #check if the value is something that means yes or similar to yes
     return v.strip().lower() in {"1", "true", "yes", "y", "on"}
 
+#sets up base directory again
 BASE = os.path.dirname(os.path.abspath(__file__))
 #creates flask app, template and static folder called 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(BASE, "instance", "fyp_database.db")
 #stores sqlite folder in instance folder
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+#creates secret key used for encryption
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev")
 
+#tells it to use gmail servers
 app.config["MAIL_SERVER"] = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+#sets the port number for the email server 
 app.config["MAIL_PORT"] = int(os.getenv("MAIL_PORT", "587"))
+#TLS used for encryption in transit
 app.config["MAIL_USE_TLS"] = _env_bool("MAIL_USE_TLS", True)
 app.config["MAIL_USE_SSL"] = _env_bool("MAIL_USE_SSL", False)
+#gmail name or email
 app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
+#app password set up using personal email college one did not work
 app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
+#where the emails come from personal email again
 app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_DEFAULT_SENDER") or app.config.get("MAIL_USERNAME")
-
+#secret salt for tokens prevents tampering
 app.config["EMAIL_CONFIRM_SALT"] = os.getenv("EMAIL_CONFIRM_SALT", "email-confirm-salt")
+#period of time until confirmation link expires
 app.config["EMAIL_CONFIRM_MAX_AGE_SECONDS"] = int(os.getenv("EMAIL_CONFIRM_MAX_AGE_SECONDS", "3600"))
-
+#http used for development
 app.config["PREFERRED_URL_SCHEME"] = os.getenv("PREFERRED_URL_SCHEME", "http")
 
-#secret key is used for session management
+#connect database to flask and project
 db = SQLAlchemy(app)
 #creates sqlachemy helper in this app.
-login_manager = LoginManager(app)
-login_manager.login_view = "login"
+login_manager = LoginManager(app)#tracks whos logged in
+login_manager.login_view = "login"#if user trys to access login only page
 
-mail = Mail(app)
+mail = Mail(app)#connect email system to the flask app
 
 class Location(db.Model): #tabke for photography spots
     id = db.Column(db.Integer, primary_key=True) #locations id primary key 
@@ -70,11 +88,11 @@ class Location(db.Model): #tabke for photography spots
     lat = db.Column(db.Float, nullable=False) #coordinates for location
     lon = db.Column(db.Float, nullable=False) #coordinates for location
     notes = db.Column(db.String(400)) #fact or notes while creating location can be included 
-    reviews = db.relationship(
-        "Review",
+    reviews = db.relationship(#connects locations to their reviews
+        "Review",#reviews come from review table
         backref="location",
-        lazy=True,
-        cascade="all, delete-orphan"
+        lazy=True,#don't automatically load reviews actual location detail is important
+        cascade="all, delete-orphan"#if we delete location delete reviews too
     )
 
 class User(UserMixin, db.Model):#creates sqlalchemy model for users, usermixin helps flask manager login users
@@ -84,8 +102,8 @@ class User(UserMixin, db.Model):#creates sqlalchemy model for users, usermixin h
     role = db.Column(db.String(20), nullable=False, default="user") # user roles admin or normal users
     created_at = db.Column(db.DateTime, default=dt.datetime.utcnow)# timestap for row being created
 
-    is_verified = db.Column(db.Boolean, nullable=False, default=False)
-    verified_at = db.Column(db.DateTime, nullable=True)
+    is_verified = db.Column(db.Boolean, nullable=False, default=False)#have they confirmed their email yet
+    verified_at = db.Column(db.DateTime, nullable=True)#when did they confirm it
 
     def set_password(self, pw: str):#hashes password and stores it in password hash
         self.password_hash = generate_password_hash(pw)
@@ -93,35 +111,38 @@ class User(UserMixin, db.Model):#creates sqlalchemy model for users, usermixin h
     def check_password(self, pw: str) -> bool:# validates if entered password is correct
         return check_password_hash(self.password_hash, pw)
     
-    reviews = db.relationship(
-        "Review",
-        backref="user",
-        lazy=True,
-        cascade="all, delete-orphan"
+    reviews = db.relationship(#connects user to their review
+        "Review",#reviews come from review table
+        backref="user",#from a review you can access the user who wrote it
+        lazy=True,#don't load reviews automatically
+        cascade="all, delete-orphan"#delete a user delete their reviews
     )
     
 class Review(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)#reviews get unique id number
 
-    location_id = db.Column(db.Integer, db.ForeignKey("location.id"), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    location_id = db.Column(db.Integer, db.ForeignKey("location.id"), nullable=False)#location id so system knows
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)#who wrote the review
 
-    rating = db.Column(db.Integer, nullable=False)  # 1..5
-    body = db.Column(db.String(1000), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)  # 1 to 5 rating system
+    body = db.Column(db.String(1000), nullable=False)# review text
 
-    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow, nullable=False)#when was the review written at
+
+from trips import init_trips
+app.register_blueprint(init_trips(db, Location))
     
 @login_manager.user_loader#required by flask login returns corresponding user so that same user works on later requests
-def load_user(user_id):
-    return User.query.get(int(user_id))
+def load_user(user_id):#maintains a users session
+    return User.query.get(int(user_id))#look up user in database and return them
 
 def admin_required(view_func):#if user who is not admin attempts to access admin function they are not allowed to access it
     @wraps(view_func)
-    @login_required
-    def wrapper(*args, **kwargs):
+    @login_required#requires user to be logged in
+    def wrapper(*args, **kwargs):#checks to see if user is admin
         if current_user.role != "admin":
             abort(403)#returns 403 forbidden if is attempted
-        return view_func(*args, **kwargs)
+        return view_func(*args, **kwargs)#if admin let them go ahead
     return wrapper
 
 def slugify(s: str):
@@ -131,58 +152,68 @@ def slugify(s: str):
     #collapses duplicate hyphen and reduces length to 200 characters
     return "-".join(filter(None, s.split("-")))[:200]
 
-def _confirm_serializer() -> URLSafeTimedSerializer:
-    return URLSafeTimedSerializer(app.config["SECRET_KEY"])
+def _confirm_serializer() -> URLSafeTimedSerializer:#tool used for creating secure tokens
+    return URLSafeTimedSerializer(app.config["SECRET_KEY"])#tokens automatically expire
 
-
+#create confirmation token for users email
 def generate_confirmation_token(email: str) -> str:
+    #encrypt email into a token to be put it into url
     return _confirm_serializer().dumps(email, salt=app.config["EMAIL_CONFIRM_SALT"])
 
-
+#checks if confirmation token is valid and extracts it from the email
 def confirm_email_token(token: str) -> str | None:
+    #try and decrypt the token
     try:
         return _confirm_serializer().loads(
+            #token to be decrypted
             token,
+            #salt must be same one we created with
             salt=app.config["EMAIL_CONFIRM_SALT"],
+            #check to see if its expired
             max_age=app.config["EMAIL_CONFIRM_MAX_AGE_SECONDS"],
         )
+    #if token is expired or tampered with return none
     except (SignatureExpired, BadSignature):
         return None
 
-
+#check to see if email is correctly set up
 def _mail_is_configured() -> bool:
+    #ensure all email settings are correct and fileld in
     return bool(
-        app.config.get("MAIL_SERVER")
-        and app.config.get("MAIL_PORT")
-        and app.config.get("MAIL_USERNAME")
-        and app.config.get("MAIL_PASSWORD")
-        and app.config.get("MAIL_DEFAULT_SENDER")
+        app.config.get("MAIL_SERVER")#yes to mail server?
+        and app.config.get("MAIL_PORT")#yes to port number?
+        and app.config.get("MAIL_USERNAME")#yes to username
+        and app.config.get("MAIL_PASSWORD")#yes to password
+        and app.config.get("MAIL_DEFAULT_SENDER")#yes to sender address?
     )
 
-
+#send the confirmation email
 def send_confirmation_email(user: User) -> bool:
-    """Send a confirmation email. Returns True if sent successfully."""
-
+    #returns true if sent correctly
+    #creates secure token with user's email in it
     token = generate_confirmation_token(user.email)
+    #build the url for the confirmation page
     confirm_url = url_for("confirm_email", token=token, _external=True)
-
+    #what the subject line is
     subject = "Confirm your email - Cork Photographers"
-    body = (
+    body = (#and whats inside the email
         "Thanks for signing up to Cork Photographers.\n\n"
         "Please confirm your email by clicking the link below:\n"
         f"{confirm_url}\n\n"
         "This link expires in 1 hour."
     )
 
-    # If email is not configured, print the link to the terminal (useful for development)
+    # If email is not configured, print the link to the terminal incase of error
     if not _mail_is_configured():
         print("\n[Email not configured] Confirmation link for", user.email)
         print(confirm_url)
         print()
         return False
 
-    try:
+    try:#try to send the email again
+        #create the email again
         msg = Message(subject=subject, recipients=[user.email], body=body)
+        #send it
         mail.send(msg)
         return True
     except Exception as e:
@@ -233,11 +264,11 @@ def location_detail(slug):
 
     tide_info = get_cork_tides()
 
-    reviews = (
-        Review.query
-        .filter_by(location_id=loc.id)
-        .order_by(Review.created_at.desc())
-        .all()
+    reviews = (#get all reviews for a location
+        Review.query# start a query on the table
+        .filter_by(location_id=loc.id)#only reviews for this location
+        .order_by(Review.created_at.desc())#sort by newest
+        .all()#get them all
     )
 
     # average rating (None if no reviews)
@@ -245,21 +276,21 @@ def location_detail(slug):
         db.session.query(func.avg(Review.rating))
         .filter(Review.location_id == loc.id)
         .scalar()
-    )
+    )#convert to float or leave if 0 reviews
     avg_rating = float(avg_rating) if avg_rating is not None else None
-    review_count = len(reviews)
+    review_count = len(reviews)#count the number of reviews
 
     return render_template( #renders the template and we give what data it requires
-        "location.html",
-        location=loc,
-        sun=sun,
-        weather=weather,
-        high_tides=tide_info["high_tides"],
-        low_tides=tide_info["low_tides"],
-        tide_error=tide_info["error"],
-        reviews=reviews,
-        avg_rating=avg_rating,
-        review_count=review_count,
+        "location.html",#which template to use
+        location=loc,#location object
+        sun=sun,#sunset data
+        weather=weather,#weather data
+        high_tides=tide_info["high_tides"],#high tide time
+        low_tides=tide_info["low_tides"],#low tide time
+        tide_error=tide_info["error"],#error is scraping does not work
+        reviews=reviews,#pass all reviews
+        avg_rating=avg_rating,#pass average rating
+        review_count=review_count,#pass review count
     )
 
 
@@ -281,129 +312,129 @@ def register():
             db.session.add(user)#add new user to the db
             db.session.commit()#commit transaction to save user in db
 
-            sent = send_confirmation_email(user)
+            sent = send_confirmation_email(user)#send confirmation email
             if sent:
-                flash(
+                flash(#tell users to check their email
                     "Account created. Please check your email and confirm your account before logging in.",
                     "success",
                 )
             else:
-                flash(
+                flash(#tell them email sending didn't work mostly app password issue
                     "Account created, but we could not send a confirmation email. "
                     "Configure SMTP (Gmail app password) and then use 'Resend confirmation'.",
                     "warning",
                 )
-
-            return redirect(url_for("login"))
-
+            
+            return redirect(url_for("login"))#send them to login page
+    #show registration if their was an error
     return render_template("register.html", message=message)
 
-@app.route("/auth/confirm/<token>")
-def confirm_email(token):
-    email = confirm_email_token(token)
-    if not email:
+@app.route("/auth/confirm/<token>")#confirmation page 
+def confirm_email(token):#function that handles email confirmation
+    email = confirm_email_token(token)#decrypt token and gain email access
+    if not email:#if token is invalid or expired
         flash("That confirmation link is invalid or expired. Please request a new one.", "warning")
-        return redirect(url_for("resend_confirmation"))
+        return redirect(url_for("resend_confirmation"))#semd them to get a new link
 
-    user = User.query.filter_by(email=email).first()
-    if not user:
+    user = User.query.filter_by(email=email).first()#look up user by email
+    if not user:#if their not a user this happens
         flash("Account not found. Please register again.", "warning")
-        return redirect(url_for("register"))
+        return redirect(url_for("register"))#tell them to register again and give them link
 
-    if user.is_verified:
+    if user.is_verified:#if they have confirmed the email address
         flash("Email already confirmed. You can log in.", "info")
-        return redirect(url_for("login"))
+        return redirect(url_for("login"))#send them to login
 
-    user.is_verified = True
-    user.verified_at = dt.datetime.utcnow()
-    db.session.commit()
-
+    user.is_verified = True#mark account as verified
+    user.verified_at = dt.datetime.utcnow()#record time
+    db.session.commit()#save the change
+    #tell them to login
     flash("Email confirmed. You can now log in.", "success")
-    return redirect(url_for("login"))
+    return redirect(url_for("login"))#redirect to login page
 
-
+#page for resending confirmation email
 @app.route("/auth/resend-confirmation", methods=["GET", "POST"])
-def resend_confirmation():
-    message = None
+def resend_confirmation():#this function handles resending confirmation emails
+    message = None#start with no error message
 
-    if request.method == "POST":
-        email = (request.form.get("email") or "").strip().lower()
+    if request.method == "POST":#if theyre resubmitting the form
+        email = (request.form.get("email") or "").strip().lower()#get the email
 
-        if not email:
+        if not email:#make sure they enter email
             message = "Please enter your email address."
-        else:
+        else:#once email is in find the email and if they exist but aren't verified send another email
             user = User.query.filter_by(email=email).first()
             if user and not user.is_verified:
                 send_confirmation_email(user)
 
-            # Always show a generic message to avoid revealing whether an email exists.
+            # standard message incase someone is trying to login to another account
             flash(
                 "If an unconfirmed account exists for that email, we've resent the confirmation email.",
                 "info",
-            )
+            )#return them to login
             return redirect(url_for("login"))
-
+    #show resend form
     return render_template("resend_confirmation.html", message=message)
 
-@app.route("/l/<slug>/review", methods=["POST"])
-@login_required
-def add_review(slug):
-    loc = Location.query.filter_by(slug=slug).first_or_404()
-
+@app.route("/l/<slug>/review", methods=["POST"])#for adding reviews
+@login_required#must be logged in
+def add_review(slug):#function handles adding reviews
+    loc = Location.query.filter_by(slug=slug).first_or_404()#find location or show error
+    #get the rating and body
     rating_raw = (request.form.get("rating") or "").strip()
     body = (request.form.get("body") or "").strip()
 
-    # Validate rating
+    # Validate rating ensure its not 6 or 10 somehow or 0
     try:
         rating = int(rating_raw)
     except ValueError:
         rating = 0
 
-    if rating < 1 or rating > 5:
+    if rating < 1 or rating > 5:#rating must be between be 1 to 5
         flash("Rating must be between 1 and 5 stars.", "warning")
         return redirect(url_for("location_detail", slug=slug))
 
-    if not body:
+    if not body:#ensure they write something in review section
         flash("Please write a short review comment.", "warning")
         return redirect(url_for("location_detail", slug=slug))
 
-    if len(body) > 1000:
+    if len(body) > 1000:#ensure written review isnt copy paste of something to waste website
         flash("Review is too long (max 1000 characters).", "warning")
         return redirect(url_for("location_detail", slug=slug))
-
+    #create the review
     r = Review(location_id=loc.id, user_id=current_user.id, rating=rating, body=body)
-    db.session.add(r)
-    db.session.commit()
+    db.session.add(r)#add it to the database
+    db.session.commit()#save it
 
-    flash("Review added.", "success")
-    return redirect(url_for("location_detail", slug=slug))
+    flash("Review added.", "success")#tell them it worked
+    return redirect(url_for("location_detail", slug=slug))#send back to location page
 
-
+#login page
 @app.route("/auth/login", methods=["GET", "POST"])
-def login():
-    message = None
+def login():#function that handles users logging in
+    message = None#start with no error message
 
-    if request.method == "POST":
+    if request.method == "POST":#if they're submitting login form get email and clean it
         email = (request.form.get("email") or "").strip().lower()
-        password = request.form.get("password") or ""
+        password = request.form.get("password") or ""#get password
 
-        user = User.query.filter_by(email=email).first()
+        user = User.query.filter_by(email=email).first()#find this user 
 
-        if user and user.check_password(password):
-            if not user.is_verified:
+        if user and user.check_password(password):#if password and user are correct
+            if not user.is_verified:#check to see if their verified
                 message = "Please confirm your email before logging in."
-            else:
+            else:#when email is verified and confirmed
                 login_user(user)
-                nxt = request.args.get("next")
+                nxt = request.args.get("next")#check to see what page they were trying to access
                 return redirect(nxt or url_for("home"))
-        else:
+        else:#if password is wrong or user doesn't exist
             message = "Invalid email or password."
-
+    #show login form 
     return render_template("login.html", message=message)
 
 
 @app.route("/auth/logout")
-@login_required
+@login_required#you have to be logged in to logout
 def logout():
     logout_user()
     return redirect(url_for("home"))
@@ -414,4 +445,4 @@ if __name__ == "__main__":
     os.makedirs(os.path.join(BASE,"instance"), exist_ok=True)# ensures instance folders exists so SQLite can create the db
     with app.app_context():#create tabeles if none exist
         db.create_all()
-    app.run(debug=True)#runs the dev server on device
+    app.run(debug=True)#runs the dev server on laptop

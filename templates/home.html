@@ -1,23 +1,37 @@
-{% extends "base.html" %} <!-- use base.html as the groundworks for style-->
-<!-- sets the title for the page-->
-{% block title %}Locations · Cork Photographers{% endblock %}
+{% extends "base.html" %}
+{% block title %}Locations - Cork Photographers{% endblock %}
+
 {% block content %}
-<section class="grid">
-  {% for loc in locations %} <!-- loops over the list of locations from app.py-->
-  <article class="card">
-    <h2 style="margin:.2rem 0">{{ loc.name }}</h2>
-    <!-- shows coordinates with 5 decimal places-->
-    <p class="muted">Lat {{ "%.5f"|format(loc.lat) }}, Lon {{ "%.5f"|format(loc.lon) }}</p>
-    <!-- shows notes if they were used-->
-    {% if loc.notes %}<p class="muted">{{ loc.notes }}</p>{% endif %}
-    <!-- link to detail page for location using slug-->
-    <a class="btn" href="{{ url_for('location_detail', slug=loc.slug) }}">Open</a>
-  </article>
-  {% else %}
-  <!-- if list is empty tells user to add one-->
-  <div class="card">
-    <p>No locations yet. <a href="{{ url_for('add_location') }}">Add one</a>.</p>
+
+<div class="jumbotron p-3 p-md-5 text-white rounded bg-dark">
+  <div class="col-md-10 px-0">
+    <h1 class="display-4 font-italic">Photography spots around Cork</h1>
+    <p class="lead my-3">
+      Explore locations with sun times, weather, tides, and reviews.
+    </p>
   </div>
-  {% endfor %}
-</section>
+</div>
+
+{% for loc in locations %}
+  <div class="blog-post">
+    <h2 class="blog-post-title">
+      <a href="{{ url_for('location_detail', slug=loc.slug) }}">{{ loc.name }}</a>
+    </h2>
+
+    <p class="blog-post-meta">
+      Lat {{ "%.5f"|format(loc.lat) }}, Lon {{ "%.5f"|format(loc.lon) }}
+    </p>
+
+    {% if loc.notes %}
+      <p>{{ loc.notes }}</p>
+    {% else %}
+      <p class="text-muted">No notes yet.</p>
+    {% endif %}
+
+    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('location_detail', slug=loc.slug) }}">
+      View details
+    </a>
+  </div>
+{% endfor %}
+
 {% endblock %}

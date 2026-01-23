@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}My Trips{% endblock %}
+
+{% block content %}
+<h2>My Trips</h2>
+
+<form method="post" action="{{ url_for('trips.trips_create') }}" style="margin-bottom: 1rem;">
+  <label>Trip name</label>
+  <input type="text" name="name" placeholder="e.g., Weekend Shoot" required>
+  <button type="submit">Create Trip</button>
+</form>
+
+{% if trips %}
+  <ul>
+    {% for t in trips %}
+      <li>
+        <a href="{{ url_for('trips.trip_detail', trip_id=t.id) }}">{{ t.name }}</a>
+        <span class="muted">({{ t.created_at.strftime("%Y-%m-%d") }})</span>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="muted">No trips yet.</p>
+{% endif %}
+{% endblock %}

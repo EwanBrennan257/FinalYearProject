@@ -1,24 +1,19 @@
 {% extends "base.html" %}
-{% block title %}Resend confirmation{% endblock %}
+{% block title %}Resend confirmation - Cork Photographers{% endblock %}
+
 {% block content %}
-<h2>Resend confirmation email</h2>
-
-<p class="muted">
-  Enter the email address you registered with. If an unconfirmed account exists for that email, we will resend a new confirmation link.
-</p>
-
-<form method="post">
-  <label for="email">Email</label>
-  <input id="email" name="email" type="email" required>
-
-  <button class="btn" type="submit">Resend</button>
-</form>
+<h2 class="mb-3">Resend confirmation</h2>
 
 {% if message %}
-  <p class="muted">{{ message }}</p>
+  <div class="alert alert-warning">{{ message }}</div>
 {% endif %}
 
-<p class="muted" style="margin-top:1rem;">
-  Back to <a href="{{ url_for('login') }}">Log in</a>
-</p>
+<form method="post" action="{{ url_for('resend_confirmation') }}">
+  <div class="form-group">
+    <label>Email</label>
+    <input class="form-control" type="email" name="email" required>
+  </div>
+
+  <button class="btn btn-primary" type="submit">Resend</button>
+</form>
 {% endblock %}

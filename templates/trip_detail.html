@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ trip.name }}{% endblock %}
+
+{% block content %}
+<h2>{{ trip.name }}</h2>
+
+<hr>
+
+<h3>Add a location</h3>
+<form method="post" action="{{ url_for('trips.trip_add_location', trip_id=trip.id) }}">
+  <select name="location_id" required>
+    <option value="">-- select a location --</option>
+    {% for loc in locations %}
+      <option value="{{ loc.id }}">{{ loc.name }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit">Add</button>
+</form>
+
+<hr>
+
+<h3>Trip order</h3>
+
+{% if stops %}
+  <ol>
+    {% for s in stops %}
+      <li style="margin-bottom: .75rem;">
+        <a href="{{ url_for('location_detail', slug=s.location.slug) }}">{{ s.location.name }}</a>
+
+        <div style="display:inline-block; margin-left: .75rem;">
+          <form method="post" action="{{ url_for('trips.trip_move_stop', trip_id=trip.id, stop_id=s.id) }}" style="display:inline;">
+            <input type="hidden" name="direction" value="up">
+            <button type="submit">↑</button>
+          </form>
+
+          <form method="post" action="{{ url_for('trips.trip_move_stop', trip_id=trip.id, stop_id=s.id) }}" style="display:inline;">
+            <input type="hidden" name="direction" value="down">
+            <button type="submit">↓</button>
+          </form>
+
+          <form method="post" action="{{ url_for('trips.trip_remove_stop', trip_id=trip.id, stop_id=s.id) }}" style="display:inline;">
+            <button type="submit">Remove</button>
+          </form>
+        </div>
+      </li>
+    {% endfor %}
+  </ol>
+{% else %}
+  <p class="muted">No locations added yet.</p>
+{% endif %}
+
+<p><a href="{{ url_for('trips.trips_list') }}">Back to trips</a></p>
+{% endblock %}

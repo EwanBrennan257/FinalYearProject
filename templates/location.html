@@ -1,120 +1,130 @@
 {% extends "base.html" %}
-{% block title %}{{ location.name }} · Cork Photographers{% endblock %}
-<!-- everything below renders inside base.html template-->
+{% block title %}{{ location.name }} - Cork Photographers{% endblock %}
+
 {% block content %}
-<h2 style="margin-top:0">{{ location.name }}</h2>
-<p class="muted">Lat {{ "%.5f"|format(location.lat) }}, Lon {{ "%.5f"|format(location.lon) }}</p>
-<!-- shows sunrise and sunset for location -->
-<div class="grid" style="margin-top:1rem">
-  <section class="card">
-    <h3>Sunrise / Sunset (today)</h3>
-    {% if sun %}
-      <p>Sunrise: <strong>{{ sun.sunrise }}</strong></p>
-      <p>Sunset: <strong>{{ sun.sunset }}</strong></p>
-    {% else %}
-      <p class="muted">No sun data.</p>
-    {% endif %}
-  </section>
-<!-- table of weather for next few hours, get_weather_hours returns a list of dicts
- only shows first six rows to keep small-->
-  <section class="card">
-    <h3>Weather (next few hours)</h3>
-    {% if weather %}
-      <table>
-        <thead><tr><th>Time</th><th>°C</th><th>Wind</th><th>Rain</th></tr></thead>
-        <tbody>
-        {% for row in weather[:6] %}
-          <tr><td>{{ row.time }}</td><td>{{ row.temp }}</td><td>{{ row.wind }}</td><td>{{ row.precip }}</td></tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    {% else %}
-      <p class="muted">No weather data.</p>
-    {% endif %}
-  </section>
-  <section class="card">
-  <h3>Tide (Cork — today)</h3>
+
+<div class="blog-post">
+  <h1 class="blog-post-title">{{ location.name }}</h1>
+
+  {% if location.notes %}
+    <p>{{ location.notes }}</p>
+  {% endif %}
+
+  <hr>
+
+  <h4>Sun</h4>
+  <ul class="list-group mb-3">
+    <li class="list-group-item">Sunrise: {{ sun.sunrise }}</li>
+    <li class="list-group-item">Sunset: {{ sun.sunset }}</li>
+  </ul>
+
+  <h4>Tides</h4>
   {% if tide_error %}
-    <p class="muted">{{ tide_error }}</p>
+    <div class="alert alert-warning">{{ tide_error }}</div>
   {% else %}
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
-      <div>
-        <h4>High</h4>
-        <ul>
+    <div class="row">
+      <div class="col-md-6">
+        <h6>High tides</h6>
+        <ul class="list-group mb-3">
           {% for t in high_tides %}
-            <li>{{ t.time }}{% if t.height is not none %} — {{ '%.2f'|format(t.height) }} m{% endif %}</li>
+            <li class="list-group-item">{{ t }}</li>
           {% endfor %}
         </ul>
       </div>
-      <div>
-        <h4>Low</h4>
-        <ul>
+      <div class="col-md-6">
+        <h6>Low tides</h6>
+        <ul class="list-group mb-3">
           {% for t in low_tides %}
-            <li>{{ t.time }}{% if t.height is not none %} — {{ '%.2f'|format(t.height) }} m{% endif %}</li>
+            <li class="list-group-item">{{ t }}</li>
           {% endfor %}
         </ul>
       </div>
     </div>
-    <p class="muted" style="margin-top:.5rem">Source: tide-forecast.com — for planning only.</p>
   {% endif %}
-</section>
 
-<hr>
-
-<h2>Reviews</h2>
-
-{% if avg_rating %}
-  <p class="muted">
-    Average rating: {{ "%.1f"|format(avg_rating) }} / 5 ({{ review_count }} review{{ "" if review_count==1 else "s" }})
-  </p>
-{% else %}
-  <p class="muted">No reviews yet.</p>
-{% endif %}
-
-{% if current_user.is_authenticated %}
-  <div class="card">
-    <h3 style="margin-top:0;">Leave a review</h3>
-
-    <form method="post" action="{{ url_for('add_review', slug=location.slug) }}">
-      <label>Rating</label>
-      <div style="margin-bottom:.5rem;">
-        {% for n in range(5, 0, -1) %}
-          <label style="margin-right:.75rem;">
-            <input type="radio" name="rating" value="{{ n }}" required>
-            {{ n }}★
-          </label>
+  <h4>Weather (next hours)</h4>
+  <div class="table-responsive mb-4">
+    <table class="table table-sm table-striped">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Temp</th>
+          <th>Condition</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for w in weather %}
+          <tr>
+            <td>{{ w.time }}</td>
+            <td>{{ w.temp }}</td>
+            <td>{{ w.summary }}</td>
+          </tr>
         {% endfor %}
-      </div>
-
-      <label for="body">Comment</label>
-      <input id="body" name="body" type="text" maxlength="1000" required>
-
-      <button class="btn" type="submit">Submit review</button>
-    </form>
+      </tbody>
+    </table>
   </div>
-{% else %}
-  <p class="muted">
-    <a href="{{ url_for('login') }}">Log in</a> to leave a review.
-  </p>
-{% endif %}
 
-<div style="margin-top:1rem;">
-  {% for r in reviews %}
-    <div class="card">
-      <div class="muted" style="display:flex; justify-content:space-between;">
-        <span>
-          {{ r.user.email }}
-          —
-          {% set stars = "★" * r.rating + "☆" * (5 - r.rating) %}
-          {{ stars }}
-        </span>
-        <span>{{ r.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
+  <hr>
+
+  <h4>Reviews</h4>
+  {% if avg_rating %}
+    <p class="text-muted">
+      Average rating: {{ "%.1f"|format(avg_rating) }} / 5 ({{ review_count }} review{{ "" if review_count==1 else "s" }})
+    </p>
+  {% else %}
+    <p class="text-muted">No reviews yet.</p>
+  {% endif %}
+
+  {% if current_user.is_authenticated %}
+    <div class="card mb-3">
+      <div class="card-body">
+        <h5 class="card-title">Leave a review</h5>
+
+        <form method="post" action="{{ url_for('add_review', slug=location.slug) }}">
+          <div class="form-group">
+            <label>Rating</label>
+            <div>
+              {% for n in range(5, 0, -1) %}
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="radio" name="rating" id="rating{{n}}" value="{{ n }}" required>
+                  <label class="form-check-label" for="rating{{n}}">{{ n }}★</label>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="body">Comment</label>
+            <input id="body" name="body" type="text" class="form-control" maxlength="1000" required>
+          </div>
+
+          <button class="btn btn-primary" type="submit">Submit review</button>
+        </form>
       </div>
-      <p style="margin-bottom:0;">{{ r.body }}</p>
+    </div>
+  {% else %}
+    <p class="text-muted">
+      <a href="{{ url_for('login') }}">Log in</a> to leave a review.
+    </p>
+  {% endif %}
+
+  {% for r in reviews %}
+    <div class="card mb-2">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div class="text-muted">
+            {{ r.user.email }}
+            —
+            {% set stars = "★" * r.rating + "☆" * (5 - r.rating) %}
+            {{ stars }}
+          </div>
+          <div class="text-muted">{{ r.created_at.strftime("%Y-%m-%d %H:%M") }}</div>
+        </div>
+        <p class="mb-0">{{ r.body }}</p>
+      </div>
     </div>
   {% endfor %}
-</div>
-
 
 </div>
+
 {% endblock %}
