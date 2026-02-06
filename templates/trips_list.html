@@ -2,24 +2,89 @@
 {% block title %}My Trips{% endblock %}
 
 {% block content %}
-<h2>My Trips</h2>
+<div class="jumbotron p-3 p-md-5 text-white rounded bg-dark">
+  <div class="col-md-10 px-0">
+    <h1 class="display-4">My Photography Trips</h1>
+    <p class="lead my-3">
+      Plan your photography adventures around Cork.
+    </p>
+  </div>
+</div>
 
-<form method="post" action="{{ url_for('trips.trips_create') }}" style="margin-bottom: 1rem;">
-  <label>Trip name</label>
-  <input type="text" name="name" placeholder="e.g., Weekend Shoot" required>
-  <button type="submit">Create Trip</button>
-</form>
+<div class="row mb-4">
+  <!-- Create Manual Trip -->
+  <div class="col-md-6 mb-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">📝 Create Custom Trip</h5>
+        <p class="card-text text-muted">Plan your own route by selecting locations.</p>
+        <form method="post" action="{{ url_for('trips.trips_create') }}">
+          <div class="form-group">
+            <input 
+              type="text" 
+              name="name" 
+              class="form-control" 
+              placeholder="e.g., Weekend Shoot" 
+              required
+            >
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Create Trip</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Create Random Trip -->
+  <div class="col-md-6 mb-3">
+    <div class="card h-100 border-success">
+      <div class="card-body">
+        <h5 class="card-title">🎲 Generate Random Trip</h5>
+        <p class="card-text text-muted">Let us surprise you with random locations!</p>
+        <form method="post" action="{{ url_for('trips.trips_create_random') }}">
+          <div class="form-group">
+            <label for="num_locations">Number of locations:</label>
+            <select name="num_locations" id="num_locations" class="form-control">
+              <option value="2">2 locations</option>
+              <option value="3" selected>3 locations</option>
+              <option value="4">4 locations</option>
+              <option value="5">5 locations</option>
+              <option value="6">6 locations</option>
+              <option value="8">8 locations</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-success btn-block">🎲 Surprise Me!</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr>
+
+<h3 class="mb-3">Your Trips</h3>
 
 {% if trips %}
-  <ul>
+  <div class="list-group">
     {% for t in trips %}
-      <li>
-        <a href="{{ url_for('trips.trip_detail', trip_id=t.id) }}">{{ t.name }}</a>
-        <span class="muted">({{ t.created_at.strftime("%Y-%m-%d") }})</span>
-      </li>
+      <a href="{{ url_for('trips.trip_detail', trip_id=t.id) }}" class="list-group-item list-group-item-action">
+        <div class="d-flex w-100 justify-content-between">
+          <h5 class="mb-1">{{ t.name }}</h5>
+          <small class="text-muted">{{ t.created_at.strftime("%b %d, %Y") }}</small>
+        </div>
+        <p class="mb-1 text-muted">
+          {% if t.stops %}
+            {{ t.stops|length }} location{{ 's' if t.stops|length != 1 else '' }}
+          {% else %}
+            No locations yet
+          {% endif %}
+        </p>
+      </a>
     {% endfor %}
-  </ul>
+  </div>
 {% else %}
-  <p class="muted">No trips yet.</p>
+  <div class="alert alert-info">
+    <strong>No trips yet!</strong> Create your first trip using one of the options above.
+  </div>
 {% endif %}
+
 {% endblock %}

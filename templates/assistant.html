@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}Photography Assistant - Cork Photographers{% endblock %}
+
+{% block content %}
+
+<div class="jumbotron p-3 p-md-5 text-white rounded bg-dark">
+  <div class="col-md-10 px-0">
+    <h1 class="display-4 font-italic">Photography Assistant</h1>
+    <p class="lead my-3">
+      Ask me anything about camera settings, lighting, composition, or gear.
+    </p>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body" style="min-height: 500px; max-height: 600px; overflow-y: auto;" id="chatMessages">
+    <!-- starter prompts -->
+    <div class="row" id="starterPrompts">
+      <div class="col-md-6 mb-3">
+        <div class="card border" style="cursor: pointer;" onclick="sendPrompt('I\'m shooting indoors at night and my photos are blurry. What should I do?')">
+          <div class="card-body">
+            <h5 class="card-title">Indoor Shooting</h5>
+            <p class="card-text text-muted">Get tips for low-light photography</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 mb-3">
+        <div class="card border" style="cursor: pointer;" onclick="sendPrompt('What\'s the exposure triangle in simple terms?')">
+          <div class="card-body">
+            <h5 class="card-title">Exposure Triangle</h5>
+            <p class="card-text text-muted">Learn the basics</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 mb-3">
+        <div class="card border" style="cursor: pointer;" onclick="sendPrompt('Best settings for outdoor portraits in bright sunlight?')">
+          <div class="card-body">
+            <h5 class="card-title">Outdoor Portraits</h5>
+            <p class="card-text text-muted">Portrait photography tips</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 mb-3">
+        <div class="card border" style="cursor: pointer;" onclick="sendPrompt('How do I get sharp photos of moving subjects?')">
+          <div class="card-body">
+            <h5 class="card-title">Action Shots</h5>
+            <p class="card-text text-muted">Freeze the motion</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- typing indicator -->
+    <div class="text-center py-3" id="typingIndicator" style="display: none;">
+      <div class="spinner-border text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+      </div>
+      <p class="text-muted mt-2">Thinking...</p>
+    </div>
+  </div>
+  
+  <div class="card-footer bg-white">
+    <form id="chatForm" onsubmit="sendMessage(event)">
+      <div class="input-group">
+        <input 
+          type="text" 
+          class="form-control" 
+          id="messageInput" 
+          placeholder="Ask about photography..." 
+          autocomplete="off"
+          required
+        >
+        <div class="input-group-append">
+          <button class="btn btn-outline-primary" type="submit" id="sendButton">
+            Send
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .message {
+    margin-bottom: 1rem;
+  }
+  
+  .message.user {
+    text-align: right;
+  }
+  
+  .message-content {
+    display: inline-block;
+    max-width: 80%;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    line-height: 1.5;
+    word-wrap: break-word;
+  }
+  
+  .message.user .message-content {
+    background: #007bff;
+    color: white;
+  }
+  
+  .message.assistant .message-content {
+    background: #f8f9fa;
+    color: #333;
+    border: 1px solid #dee2e6;
+    text-align: left;
+  }
+  
+  .card.border:hover {
+    border-color: #007bff;
+  }
+</style>
+
+<script>
+  const chatMessages = document.getElementById('chatMessages');
+  const chatForm = document.getElementById('chatForm');
+  const messageInput = document.getElementById('messageInput');
+  const sendButton = document.getElementById('sendButton');
+  const typingIndicator = document.getElementById('typingIndicator');
+  const starterPrompts = document.getElementById('starterPrompts');
+  
+  let chatHistory = [];
+  
+  function addMessage(role, content) {
+    
+    if (starterPrompts) {
+      starterPrompts.style.display = 'none';
+    }
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${role}`;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    contentDiv.innerHTML = formatMessage(content);
+    
+    messageDiv.appendChild(contentDiv);
+    chatMessages.insertBefore(messageDiv, typingIndicator);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    
+    
+    chatHistory.push({ role, content });
+  }
+  
+  function formatMessage(text) {
+    
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+  }
+  
+  function showTyping() {
+    typingIndicator.style.display = 'block';
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+  
+  function hideTyping() {
+    typingIndicator.style.display = 'none';
+  }
+  
+  function showError(message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+    alertDiv.innerHTML = `
+      ${message}
+      <button type="button" class="close" data-dismiss="alert">
+        <span>&times;</span>
+      </button>
+    `;
+    chatMessages.insertBefore(alertDiv, typingIndicator);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+  
+  async function sendMessage(event) {
+    event.preventDefault();
+    
+    const message = messageInput.value.trim();
+    if (!message) return;
+    
+    
+    addMessage('user', message);
+    messageInput.value = '';
+    
+    
+    sendButton.disabled = true;
+    messageInput.disabled = true;
+    showTyping();
+    
+    try {
+      const response = await fetch('/api/assistant/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: message,
+          history: chatHistory
+        })
+      });
+      
+      const data = await response.json();
+      
+      hideTyping();
+      
+      if (data.success) {
+        addMessage('assistant', data.response);
+      } else {
+        showError(data.error || 'Failed to get response');
+      }
+      
+    } catch (error) {
+      hideTyping();
+      if (error.message.includes('timeout')) {
+        showError('The model is still processing. This can take 1-3 minutes on first run. Please try again.');
+      } else {
+        showError('Network error: ' + error.message);
+      }
+    } finally {
+      sendButton.disabled = false;
+      messageInput.disabled = false;
+      messageInput.focus();
+    }
+  }
+  
+  function sendPrompt(promptText) {
+    messageInput.value = promptText;
+    sendMessage(new Event('submit'));
+  }
+  
+  
+  messageInput.focus();
+</script>
+{% endblock %}

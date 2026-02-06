@@ -204,4 +204,66 @@ def init_trips(db, Location):#this function sets up the trip feature as a bluepr
     trips_bp.Trip = Trip
     trips_bp.TripStop = TripStop
 
+    # Generate a random trip flask route
+    @trips_bp.route("/trips/random", methods=["POST"])#url endpoint
+    @login_required
+    def trips_create_random():#creates a trip with randomly selected locations
+        #uses python random.sample for non replacement random selection
+        import random#import random module for random selection algorithim
+        
+        # Get how many locations the user wants (default 3)
+        try:
+            num_locations = int(request.form.get("num_locations", 3))#extract num locations from html form
+            #convert string to integer
+            # Limit between 2 and 8 locations
+            num_locations = max(2, min(8, num_locations))
+        except ValueError:#handles case where user input isn't a valid number
+            num_locations = 3#fallback
+        
+        # Get all available locations from database
+        all_locations = Location.query.all()
+        
+        # Check if we have enough locations
+        if len(all_locations) < 2:
+            flash("Not enough locations available for a random trip. Please add more locations first.", "warning")
+            return redirect(url_for("trips.trips_list"))
+        
+        # Randomly select locations 
+        num_to_pick = min(num_locations, len(all_locations))
+        #ensures no duplicates locations in the same trip
+        #returns a list of randoml selected location objects
+        selected_locations = random.sample(all_locations, num_to_pick)
+        
+        # Generate a fun random trip name
+        trip_names = [
+            "Random Adventure",
+            "Mystery Tour",
+            "Cork Discovery"
+        ]
+        trip_name = random.choice(trip_names)#pick one from the list
+        
+        # Create the trip
+        trip = Trip(user_id=current_user.id, name=trip_name)#creates new row trip
+        #add trip to database session
+        db.session.add(trip)
+        #flsuh writes the trip to the database and generates trip.id
+        db.session.flush()  # Get the trip ID without committing yet
+        
+        # Add the random locations as stops, link trips to the location
+        for position, location in enumerate(selected_locations, start=1):
+            stop = TripStop(
+                trip_id=trip.id, #foregin key which trip this stop belongs to
+                location_id=location.id, # foreign key which locations to visit
+                position=position # sequential order which stop in what order
+            )
+            db.session.add(stop)
+        
+        # Commit all changes
+        db.session.commit()
+        #show success message
+        flash(f"Random trip '{trip_name}' created with {num_to_pick} locations!", "success")
+        return redirect(url_for("trips.trip_detail", trip_id=trip.id))
+
+    return trips_bp  # This should be at the very end
+
     return trips_bp

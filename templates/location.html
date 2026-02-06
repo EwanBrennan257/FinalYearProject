@@ -10,6 +10,18 @@
     <p>{{ location.notes }}</p>
   {% endif %}
 
+    <!-- Map code -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5 class="card-title">📍 Location Map</h5>
+      <div id="location-map" style="height: 400px; width: 100%; border-radius: 8px;"></div>
+      <p class="text-muted mt-2 mb-0">
+        <small>Coordinates: {{ "%.5f"|format(location.lat) }}, {{ "%.5f"|format(location.lon) }}</small>
+      </p>
+    </div>
+  </div>
+
+
   <hr>
 
   <h4>Sun</h4>
@@ -126,5 +138,44 @@
   {% endfor %}
 
 </div>
+
+
+</div> 
+
+<!-- Google maps script -->
+<script>
+function initLocationMap() {
+  const location = {
+    lat: {{ location.lat }},
+    lng: {{ location.lon }}
+  };
+  
+  const map = new google.maps.Map(document.getElementById('location-map'), {
+    zoom: 14,
+    center: location,
+    mapTypeId: 'terrain'
+  });
+  
+  const marker = new google.maps.Marker({
+    position: location,
+    map: map,
+    title: '{{ location.name }}',
+    animation: google.maps.Animation.DROP
+  });
+  
+  const infoWindow = new google.maps.InfoWindow({
+    content: '<div style="padding: 10px;"><strong>{{ location.name }}</strong><br>{{ location.notes|default("Photography location", true) }}</div>'
+  });
+  
+  marker.addListener('click', function() {
+    infoWindow.open(map, marker);
+  });
+}
+</script>
+
+<script async defer
+  src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initLocationMap">
+</script>
+
 
 {% endblock %}

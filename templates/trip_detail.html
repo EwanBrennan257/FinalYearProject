@@ -4,6 +4,20 @@
 {% block content %}
 <h2>{{ trip.name }}</h2>
 
+<!-- Google Maps -->
+{% if stops %}
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">🗺️ Trip Route</h5>
+    <div id="trip-map" style="height: 450px; width: 100%; border-radius: 8px;"></div>
+    <p class="text-muted mt-2 mb-0">
+      <small>{{ stops|length }} location{{ 's' if stops|length != 1 else '' }} in this trip</small>
+    </p>
+  </div>
+</div>
+{% endif %}
+<!-- END MAP SECTION -->
+
 <hr>
 
 <h3>Add a location</h3>
@@ -50,4 +64,76 @@
 {% endif %}
 
 <p><a href="{{ url_for('trips.trips_list') }}">Back to trips</a></p>
+
+<!-- Google Maps for trip -->
+{% if stops %}
+<script>
+function initTripMap() {
+  const stops = [
+    {% for s in stops %}
+    {
+      lat: {{ s.location.lat }},
+      lng: {{ s.location.lon }},
+      name: '{{ s.location.name }}',
+      position: {{ s.position }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
+  
+  if (stops.length === 0) return;
+  
+  // Map start on first location
+  const map = new google.maps.Map(document.getElementById('trip-map'), {
+    zoom: 10,
+    center: stops[0],
+    mapTypeId: 'roadmap'
+  });
+  
+  // Markers for stops
+  const markers = stops.map((stop, index) => {
+    const marker = new google.maps.Marker({
+      position: { lat: stop.lat, lng: stop.lng },
+      map: map,
+      label: (index + 1).toString(),
+      title: stop.name
+    });
+    
+    const infoWindow = new google.maps.InfoWindow({
+      content: `<div style="padding: 8px;"><strong>Stop ${index + 1}</strong><br>${stop.name}</div>`
+    });
+    
+    marker.addListener('click', function() {
+      infoWindow.open(map, marker);
+    });
+    
+    return marker;
+  });
+  
+  // Draws route lines
+  if (stops.length > 1) {
+    const path = stops.map(s => ({ lat: s.lat, lng: s.lng }));
+    
+    const route = new google.maps.Polyline({
+      path: path,
+      geodesic: true,
+      strokeColor: '#667eea',
+      strokeOpacity: 0.8,
+      strokeWeight: 3
+    });
+    
+    route.setMap(map);
+  }
+  
+  // map extends to all of the locations 
+  const bounds = new google.maps.LatLngBounds();
+  stops.forEach(stop => bounds.extend({ lat: stop.lat, lng: stop.lng }));
+  map.fitBounds(bounds);
+}
+</script>
+
+<script async defer
+  src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initTripMap">
+</script>
+{% endif %}
+
 {% endblock %}

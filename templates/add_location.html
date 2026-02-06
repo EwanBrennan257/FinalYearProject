@@ -1,19 +1,90 @@
 {% extends "base.html" %}
 {% block title %}Add Location{% endblock %}
+
 {% block content %}
-<h2>Add a Location</h2>
-<form method="post">
-  <label for="name">Name</label>
-<!-- name shown to users becomes request.form of what they input -->
-  <input id="name" name="name" required type="text" placeholder="e.g. Example Beach">
-  <label for="lat">Latitude</label>
-<!-- users input coordinates from looking it up online of any location in ireland -->
-  <input id="lat" name="lat" required type="number" step="any">
-  <label for="lon">Longitude</label>
-  <input id="lon" name="lon" required type="number" step="any">
-  <label for="notes">Notes</label>
-<!-- optional notes about location for users -->
-  <input id="notes" name="notes" type="text">
-  <button class="btn" type="submit">Save</button>
-</form>
+<div class="row">
+  <div class="col-md-6">
+    <h2>Add a Location</h2>
+    <form method="post" id="locationForm">
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input id="name" name="name" required type="text" class="form-control" placeholder="e.g. Example Beach">
+      </div>
+      
+      <div class="form-group">
+        <label for="lat">Latitude</label>
+        <input id="lat" name="lat" required type="number" step="any" class="form-control" readonly>
+      </div>
+      
+      <div class="form-group">
+        <label for="lon">Longitude</label>
+        <input id="lon" name="lon" required type="number" step="any" class="form-control" readonly>
+      </div>
+      
+      <div class="form-group">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" class="form-control" rows="3" placeholder="Optional notes about this location"></textarea>
+      </div>
+      
+      <button class="btn btn-primary" type="submit">Save Location</button>
+      <a href="{{ url_for('home') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+  </div>
+  
+  <div class="col-md-6">
+    <h2>📍 Click on Map</h2>
+    <p class="text-muted">Click anywhere on the map to select coordinates</p>
+    <div id="map-picker" style="height: 500px; width: 100%; border-radius: 8px; border: 2px solid #dee2e6;"></div>
+    <p class="text-muted mt-2" id="map-instructions">
+      <small>💡 Click on the map to place a marker and automatically fill in coordinates.</small>
+    </p>
+  </div>
+</div>
+
+<script>
+let map;
+let marker;
+
+function initMapPicker() {
+  // defaults to cork
+  const cork = { lat: 51.8969, lng: -8.4863 };
+  
+  map = new google.maps.Map(document.getElementById('map-picker'), {
+    zoom: 11,
+    center: cork,
+    mapTypeId: 'terrain'
+  });
+  
+
+  map.addListener('click', function(event) {
+    placeMarker(event.latLng);
+  });
+}
+
+function placeMarker(location) {
+  // removes old marker
+  if (marker) {
+    marker.setMap(null);
+  }
+  
+  // creates new marker
+  marker = new google.maps.Marker({
+    position: location,
+    map: map,
+    animation: google.maps.Animation.DROP
+  });
+  
+  // update form fields
+  document.getElementById('lat').value = location.lat().toFixed(6);
+  document.getElementById('lon').value = location.lng().toFixed(6);
+  
+  // update instructions
+  document.getElementById('map-instructions').innerHTML = 
+    `<small>✅ Location selected: ${location.lat().toFixed(6)}, ${location.lng().toFixed(6)}</small>`;
+}
+</script>
+
+<script async defer
+  src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initMapPicker">
+</script>
 {% endblock %}

@@ -9,12 +9,13 @@ try:
 except Exception:#incase of error ignore and continue
     pass
 #import all flask items
-from flask import Flask, render_template, request, redirect, url_for, abort, flash #flask object, render template renders jinja template/ html pages,
+from flask import Flask, render_template, request, redirect, url_for, abort, flash, jsonify, session #flask object, render template renders jinja template/ html pages,
 #request redirect form handling and redirects
 from flask_sqlalchemy import SQLAlchemy # handles sqlite 
 
 from services.sun import get_sun_times#API calls in service folder 
 from services.weather import get_weather_hours
+from services.ollama_agent import OllamaAgent 
 
 from flask_login import ( #login manager used for whos logged in
     LoginManager, login_user, login_required,#logout for people who logout 
@@ -32,6 +33,7 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from services.tide import get_cork_tides 
 #import SQL functions
 from sqlalchemy.sql import func
+
 
 #reads enviroment variables as true or false
 def _env_bool(key: str, default: bool) -> bool:
@@ -80,6 +82,10 @@ login_manager = LoginManager(app)#tracks whos logged in
 login_manager.login_view = "login"#if user trys to access login only page
 
 mail = Mail(app)#connect email system to the flask app
+
+@app.context_processor
+def inject_google_maps_key():#makes it available to all templates, eliminates need for passing the key in every route
+    return dict(google_maps_api_key=os.getenv("GOOGLE_MAPS_API_KEY"))#return dictionary of variables to inject into template context
 
 class Location(db.Model): #tabke for photography spots
     id = db.Column(db.Integer, primary_key=True) #locations id primary key 
@@ -408,6 +414,77 @@ def add_review(slug):#function handles adding reviews
 
     flash("Review added.", "success")#tell them it worked
     return redirect(url_for("location_detail", slug=slug))#send back to location page
+
+
+@app.route("/assistant")
+@login_required 
+def assistant_page():#renders the assistant page
+    return render_template("assistant.html")
+
+
+@app.route("/api/assistant/chat", methods=["POST"])#restful api endpoint only accept posts requests
+@login_required  
+def assistant_chat():
+    #Handle chat message requests from photography assstant
+    #user message and convo history to Ollama
+    try:
+        data = request.get_json()#gets JSON data from POST request body
+        user_message = data.get("message", "").strip()#Extract user's message from JSON to empty strin if missing
+        chat_history = data.get("history", [])#extract conversation history 
+        
+        if not user_message:#validate that message is not empty
+            return jsonify({"success": False, "error": "Message cannot be empty"}), 400
+        
+        # Initialize Ollama agent
+        agent = OllamaAgent()
+        
+        # Build messages list from history + new message
+        messages = []
+        for msg in chat_history[-10:]:  # Keep last 10 messages for context
+            messages.append({
+                "role": msg.get("role", "user"),
+                "content": msg.get("content", "")
+            })
+        
+        # Add the new user message
+        messages.append({"role": "user", "content": user_message})
+        
+        # Get response from Ollama
+        result = agent.chat(messages)
+        
+        if result["success"]:#check if ollama call was succesful
+            return jsonify({ #return success response to user
+                "success": True, #succesful api call
+                "response": result["message"], #the advice it gives
+                "model": result.get("model") # which model responded
+            })
+        else:#call failed
+            return jsonify({
+                "success": False,
+                "error": result.get("error", "Unknown error occurred")
+            }), 500
+            
+    except Exception as e:#catch any unexpected error messages
+        return jsonify({"success": False, "error": str(e)}), 500 #log exception and return to client
+
+
+@app.route("/api/assistant/status", methods=["GET"]) #get requests only
+def assistant_status(): #check if assistant is available and ready, 
+    agent = OllamaAgent()# intialise agent to check model status
+    is_available = agent.is_model_available()# check if agent is installed and return true if it exists
+    
+    response = {#build response dictionary with status information
+        "available": is_available,#boolean is model ready to use
+        "model": agent.model,#string of agent
+        "api_base": agent.base_url#currently local host
+    }
+    
+    if is_available:#if model is available get details
+        info = agent.get_model_info()#return dict with model metadata or none if request fails
+        if info:#only add model info to response if data was successfully retrieved
+            response["model_info"] = info# add nested dict with model details
+    
+    return jsonify(response)#return json response if data was succesfully retrieved
 
 #login page
 @app.route("/auth/login", methods=["GET", "POST"])
