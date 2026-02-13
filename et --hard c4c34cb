@@ -1,0 +1,28 @@
+[33m4763e03[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Add extend_existing to TripStop
+[33m33347c6[m Fix trip table already defined error
+[33me061c14[m Temporarily disable trips blueprint
+[33m017bbf0[m Move db.create_all() to after models and register blueprint
+[33m43019ba[m added test
+[33mb1cd81a[m Uncomment db.create_all() to create tables
+[33m4b04d66[m Add debug logging to find crash point
+[33m29790f2[m Temporarily disable db.create_all for testing
+[33mebe36c7[m Move db.create_all() to work with gunicorn
+[33m036f591[m Configure SQLAlchemy to use psycopg3 driver
+[33m3f75e1e[m Switch to psycopg3 for Python 3.2.13 compatibility
+[33m14ab934[m Switch to psycopg3 for Python 3.13 compatibility
+[33ma14584f[m Switch from SQLite to PostgreSQL
+[33m3e57052[m Add Procfile for Railway deployment
+[33m36b6d8e[m Changed timezone
+[33m4099480[m Remove h3 - not needed
+[33m729994b[m Remove unused h3 dependency and duplicate requests
+[33m09e5859[m Fix gunicorn in requirements.txt
+[33m4246af8[m Add gunicorn for Render deployment
+[33mc4c34cb[m Iteration 4
+[33m312995d[m Iteration 3
+[33m235f7cd[m App.py comments and trips.py
+[33m3e68230[m Fix email config / review updates
+[33m3bdf8f6[m Add reviews and ignore local artifacts
+[33m5cc6140[m Add .gitignore
+[33mdc24383[m Add email verification for user sign-up
+[33ma14ba8e[m Iteration 2
+[33m14e2685[m intial commit

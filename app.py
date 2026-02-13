@@ -15,7 +15,7 @@ from flask_sqlalchemy import SQLAlchemy # handles sqlite
 
 from services.sun import get_sun_times#API calls in service folder 
 from services.weather import get_weather_hours
-from services.ollama_agent import OllamaAgent 
+from services.groq_agent import GroqAgent
 
 from flask_login import ( #login manager used for whos logged in
     LoginManager, login_user, login_required,#logout for people who logout 
@@ -247,7 +247,7 @@ def home():
 
 @app.route("/add", methods=["GET","POST"]
 )
-@admin_required
+@login_required
 #Adds a new location to the database using get and post method
 def add_location():
     if request.method == "POST":
@@ -444,8 +444,8 @@ def assistant_chat():
         if not user_message:#validate that message is not empty
             return jsonify({"success": False, "error": "Message cannot be empty"}), 400
         
-        # Initialize Ollama agent
-        agent = OllamaAgent()
+        # Initialize Groq agent
+        agent = GroqAgent()
         
         # Build messages list from history + new message
         messages = []
@@ -479,7 +479,7 @@ def assistant_chat():
 
 @app.route("/api/assistant/status", methods=["GET"]) #get requests only
 def assistant_status(): #check if assistant is available and ready, 
-    agent = OllamaAgent()# intialise agent to check model status
+    agent = GroqAgent()# initialise agent to check model status
     is_available = agent.is_model_available()# check if agent is installed and return true if it exists
     
     response = {#build response dictionary with status information

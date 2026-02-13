@@ -50,7 +50,7 @@
     <div class="nav-scroller py-1 mb-3">
       <nav class="nav d-flex justify-content-between">
         <a class="p-2 text-muted" href="{{ url_for('home') }}">Locations</a>
-        {% if current_user.is_authenticated and current_user.role == "admin" %}
+        {% if current_user.is_authenticated %}
           <a class="p-2 text-muted" href="{{ url_for('add_location') }}">Add location</a>
         {% endif %}
       </nav>
