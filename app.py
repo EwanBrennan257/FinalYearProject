@@ -231,10 +231,15 @@ def send_confirmation_email(user: User) -> bool:
         return False
 
     try:#try to send the email again
+        import socket
+        # ADD THESE THREE LINES AT THE TOP OF TRY BLOCK:
+        old_timeout = socket.getdefaulttimeout()
+        socket.setdefaulttimeout(10)  # 10 second timeout for SMTP
         #create the email again
         msg = Message(subject=subject, recipients=[user.email], body=body)
         #send it
         mail.send(msg)
+        socket.setdefaulttimeout(old_timeout)  # Restore original timeout
         return True
     except Exception as e:
         # Avoid crashing the registration flow if SMTP fails.
