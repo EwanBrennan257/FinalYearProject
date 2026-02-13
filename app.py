@@ -146,6 +146,10 @@ class Review(db.Model):
 
 from trips import init_trips
 app.register_blueprint(init_trips(db, Location))
+
+# Initialize database tables on startup
+with app.app_context():
+    db.create_all()
     
 @login_manager.user_loader#required by flask login returns corresponding user so that same user works on later requests
 def load_user(user_id):#maintains a users session
@@ -533,4 +537,4 @@ if __name__ == "__main__":
     
     with app.app_context():
         db.create_all()  # This still works with PostgreSQL
-    app.run(debug=True)
+    app.run(debug=os.getenv("FLASK_DEBUG", "False").lower() == "true")
