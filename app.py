@@ -49,7 +49,16 @@ def _env_bool(key: str, default: bool) -> bool:
 BASE = os.path.dirname(os.path.abspath(__file__))
 #creates flask app, template and static folder called 
 app = Flask(__name__, static_folder="static", template_folder="templates")
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(BASE, "instance", "fyp_database.db")
+
+# Get database URL from environment variable
+database_url = os.getenv("DATABASE_URL", "postgresql://postgres:Teddycork2016%3F@localhost:5432/fyp_database")
+
+# Render provides DATABASE_URL starting with postgres://, but SQLAlchemy needs postgresql://
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+
 #stores sqlite folder in instance folder
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 #creates secret key used for encryption
@@ -519,7 +528,9 @@ def logout():
 
 
 if __name__ == "__main__":
-    os.makedirs(os.path.join(BASE,"instance"), exist_ok=True)# ensures instance folders exists so SQLite can create the db
-    with app.app_context():#create tabeles if none exist
-        db.create_all()
-    app.run(debug=True)#runs the dev server on laptop
+    # No longer need to create instance folder for PostgreSQL
+    # os.makedirs(os.path.join(BASE,"instance"), exist_ok=True)
+    
+    with app.app_context():
+        db.create_all()  # This still works with PostgreSQL
+    app.run(debug=True)
