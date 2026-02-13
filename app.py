@@ -150,6 +150,7 @@ app.register_blueprint(init_trips(db, Location))
 # Initialize database tables on startup
 with app.app_context():
     db.create_all()
+    print("✅ Database tables created!")
     
 @login_manager.user_loader#required by flask login returns corresponding user so that same user works on later requests
 def load_user(user_id):#maintains a users session
