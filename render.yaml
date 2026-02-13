@@ -40,4 +40,3 @@ databases:
   - name: fyp-database
     databaseName: fyp_database
     plan: free
-    user: postgres
