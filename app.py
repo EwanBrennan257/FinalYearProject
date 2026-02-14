@@ -1,5 +1,7 @@
 #datetime used for dates and times
 import os, datetime as dt
+import uuid
+from werkzeug.utils import secure_filename
 #use this to find other files in relation to this locaiton
 BASE = os.path.dirname(os.path.abspath(__file__))
 #trys to load api keys and password from .env
@@ -59,6 +61,21 @@ if database_url and database_url.startswith("postgres://"):
 
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 
+# File upload configuration
+UPLOAD_FOLDER = os.path.join(BASE, "static", "uploads")
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
+
+# Create uploads folder if it doesn't exist
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    """Check if file extension is allowed"""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 #stores sqlite folder in instance folder
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 #creates secret key used for encryption
@@ -109,6 +126,12 @@ class Location(db.Model): #tabke for photography spots
         lazy=True,#don't automatically load reviews actual location detail is important
         cascade="all, delete-orphan"#if we delete location delete reviews too
     )
+    photos = db.relationship(
+        "Photo",
+        backref="location",
+        lazy=True,
+        cascade="all, delete-orphan"
+    )
 
 class User(UserMixin, db.Model):#creates sqlalchemy model for users, usermixin helps flask manager login users
     id = db.Column(db.Integer, primary_key=True)
@@ -132,6 +155,12 @@ class User(UserMixin, db.Model):#creates sqlalchemy model for users, usermixin h
         lazy=True,#don't load reviews automatically
         cascade="all, delete-orphan"#delete a user delete their reviews
     )
+    photos = db.relationship(
+        "Photo",
+        backref="user",
+        lazy=True,
+        cascade="all, delete-orphan"
+    )
     
 class Review(db.Model):
     id = db.Column(db.Integer, primary_key=True)#reviews get unique id number
@@ -143,6 +172,16 @@ class Review(db.Model):
     body = db.Column(db.String(1000), nullable=False)# review text
 
     created_at = db.Column(db.DateTime, default=dt.datetime.utcnow, nullable=False)#when was the review written at
+
+class Photo(db.Model):
+    """User-uploaded photos for locations"""
+    id = db.Column(db.Integer, primary_key=True)
+    location_id = db.Column(db.Integer, db.ForeignKey("location.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)  # stored filename
+    original_filename = db.Column(db.String(255))  # user's original filename
+    caption = db.Column(db.String(500))  # optional caption
+    uploaded_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
 
 from trips import init_trips
 app.register_blueprint(init_trips(db, Location))
@@ -320,6 +359,79 @@ def location_detail(slug):
         avg_rating=avg_rating,#pass average rating
         review_count=review_count,#pass review count
     )
+
+@app.route("/l/<slug>/upload", methods=["POST"])
+@login_required
+def upload_photo(slug):
+    """Handle photo upload for a location"""
+    loc = Location.query.filter_by(slug=slug).first_or_404()
+    
+    if 'photo' not in request.files:
+        flash("No file selected.", "warning")
+        return redirect(url_for("location_detail", slug=slug))
+    
+    file = request.files['photo']
+    
+    if file.filename == '':
+        flash("No file selected.", "warning")
+        return redirect(url_for("location_detail", slug=slug))
+    
+    if file and allowed_file(file.filename):
+        # Generate unique filename
+        original_filename = secure_filename(file.filename)
+        extension = original_filename.rsplit('.', 1)[1].lower()
+        unique_filename = f"{current_user.id}_{int(dt.datetime.utcnow().timestamp())}_{uuid.uuid4().hex[:8]}.{extension}"
+        
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+        file.save(filepath)
+        
+        # Get optional caption
+        caption = request.form.get("caption", "").strip()
+        if len(caption) > 500:
+            caption = caption[:500]
+        
+        # Save to database
+        photo = Photo(
+            location_id=loc.id,
+            user_id=current_user.id,
+            filename=unique_filename,
+            original_filename=original_filename,
+            caption=caption
+        )
+        db.session.add(photo)
+        db.session.commit()
+        
+        flash("Photo uploaded successfully!", "success")
+    else:
+        flash("Invalid file type. Please upload a valid image (PNG, JPG, JPEG, GIF, WEBP).", "warning")
+    
+    return redirect(url_for("location_detail", slug=slug))
+
+
+@app.route("/photo/<int:photo_id>/delete", methods=["POST"])
+@login_required
+def delete_photo(photo_id):
+    """Delete a photo (owner or admin only)"""
+    photo = Photo.query.get_or_404(photo_id)
+    
+    # Only owner or admin can delete
+    if photo.user_id != current_user.id and current_user.role != "admin":
+        abort(403)
+    
+    # Delete file from disk
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], photo.filename)
+    if os.path.exists(filepath):
+        try:
+            os.remove(filepath)
+        except Exception as e:
+            print(f"Failed to delete file: {e}")
+    
+    slug = photo.location.slug
+    db.session.delete(photo)
+    db.session.commit()
+    
+    flash("Photo deleted.", "success")
+    return redirect(url_for("location_detail", slug=slug))
 
 
 @app.route("/auth/register", methods=["GET", "POST"])#route decorator defines endpoint thats acepts get and post requests
