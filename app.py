@@ -18,6 +18,7 @@ from flask_sqlalchemy import SQLAlchemy # handles sqlite
 from services.sun import get_sun_times#API calls in service folder 
 from services.weather import get_weather_hours
 from services.groq_agent import GroqAgent
+from services.photo_analysis import PhotoAnalyzer
 
 from flask_login import ( #login manager used for whos logged in
     LoginManager, login_user, login_required,#logout for people who logout 
@@ -187,6 +188,26 @@ class Photo(db.Model):
     original_filename = db.Column(db.String(255))  # user's original filename
     caption = db.Column(db.String(500))  # optional caption
     uploaded_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
+
+# NEW: Separate table for photo analyses
+class PhotoAnalysis(db.Model):
+    """Separate feature for analyzing photos"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    original_filename = db.Column(db.String(255))
+    
+    # Analysis results
+    labels = db.Column(db.JSON)  # Objects detected
+    colors = db.Column(db.JSON)  # Dominant colors
+    landmarks = db.Column(db.JSON)  # Famous places detected
+    text_found = db.Column(db.JSON)  # Any text in image (OCR)
+    properties = db.Column(db.JSON)  # Other properties
+    
+    analyzed_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
+    
+    # Relationship to user
+    user = db.relationship('User', backref='photo_analyses')
 
 from trips import init_trips
 app.register_blueprint(init_trips(db, Location))
@@ -437,6 +458,118 @@ def delete_photo(photo_id):
     
     flash("Photo deleted.", "success")
     return redirect(url_for("location_detail", slug=slug))
+
+# Initialize analyzer
+photo_analyzer = PhotoAnalyzer()
+
+@app.route("/analyze")
+@login_required
+def analyze_page():
+    """Photo analysis tool page"""
+    # Get user's previous analyses
+    analyses = PhotoAnalysis.query.filter_by(user_id=current_user.id)\
+        .order_by(PhotoAnalysis.analyzed_at.desc())\
+        .limit(10)\
+        .all()
+    
+    return render_template("analyze.html", analyses=analyses)
+
+
+@app.route("/analyze/upload", methods=["POST"])
+@login_required
+def analyze_upload():
+    """Handle photo upload for analysis"""
+    if 'photo' not in request.files:
+        flash("No file selected.", "warning")
+        return redirect(url_for("analyze_page"))
+    
+    file = request.files['photo']
+    
+    if file.filename == '':
+        flash("No file selected.", "warning")
+        return redirect(url_for("analyze_page"))
+    
+    if file and allowed_file(file.filename):
+        # Generate unique filename
+        original_filename = secure_filename(file.filename)
+        extension = original_filename.rsplit('.', 1)[1].lower()
+        unique_filename = f"analysis_{current_user.id}_{int(dt.datetime.utcnow().timestamp())}_{uuid.uuid4().hex[:8]}.{extension}"
+        
+        # Save to separate folder
+        analysis_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'analyses')
+        os.makedirs(analysis_folder, exist_ok=True)
+        filepath = os.path.join(analysis_folder, unique_filename)
+        file.save(filepath)
+        
+        # Analyze the photo
+        analysis_result = photo_analyzer.analyze_photo(filepath)
+        
+        if analysis_result['success']:
+            # Save analysis to database
+            analysis = PhotoAnalysis(
+                user_id=current_user.id,
+                filename=unique_filename,
+                original_filename=original_filename,
+                labels=analysis_result.get('labels'),
+                colors=analysis_result.get('colors'),
+                landmarks=analysis_result.get('landmarks'),
+                text_found=analysis_result.get('text_found'),
+                properties={
+                    'objects': analysis_result.get('objects'),
+                    'summary': analysis_result.get('summary')
+                }
+            )
+            db.session.add(analysis)
+            db.session.commit()
+            
+            flash("Photo analyzed successfully!", "success")
+            return redirect(url_for("analysis_detail", analysis_id=analysis.id))
+        else:
+            # Analysis failed
+            flash(f"Analysis failed: {analysis_result.get('error', 'Unknown error')}", "danger")
+            os.remove(filepath)  # Clean up file
+            return redirect(url_for("analyze_page"))
+    else:
+        flash("Invalid file type. Please upload a valid image.", "warning")
+        return redirect(url_for("analyze_page"))
+
+
+@app.route("/analyze/<int:analysis_id>")
+@login_required
+def analysis_detail(analysis_id):
+    """View detailed analysis results"""
+    analysis = PhotoAnalysis.query.get_or_404(analysis_id)
+    
+    # Only owner can view
+    if analysis.user_id != current_user.id:
+        abort(403)
+    
+    return render_template("analysis_detail.html", analysis=analysis)
+
+
+@app.route("/analyze/<int:analysis_id>/delete", methods=["POST"])
+@login_required
+def delete_analysis(analysis_id):
+    """Delete an analysis"""
+    analysis = PhotoAnalysis.query.get_or_404(analysis_id)
+    
+    # Only owner can delete
+    if analysis.user_id != current_user.id:
+        abort(403)
+    
+    # Delete file
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'analyses', analysis.filename)
+    if os.path.exists(filepath):
+        try:
+            os.remove(filepath)
+        except Exception as e:
+            print(f"Failed to delete file: {e}")
+    
+    db.session.delete(analysis)
+    db.session.commit()
+    
+    flash("Analysis deleted.", "success")
+    return redirect(url_for("analyze_page"))
 
 
 @app.route("/auth/register", methods=["GET", "POST"])#route decorator defines endpoint thats acepts get and post requests

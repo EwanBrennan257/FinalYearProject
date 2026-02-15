@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Photo Analysis - Cork Photographers{% endblock %}
+
+{% block content %}
+
+<div class="jumbotron p-3 p-md-5 text-white rounded bg-dark">
+  <div class="col-md-10 px-0">
+    <h1 class="display-4 font-italic">📸 Photo Analysis Tool</h1>
+    <p class="lead my-3">
+      Upload any photo to get a detailed breakdown of what's in it, colors, objects, and more.
+    </p>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Upload Section -->
+  <div class="col-md-6">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h4 class="card-title mb-3">Upload Photo for Analysis</h4>
+        
+        <form method="post" action="{{ url_for('analyze_upload') }}" enctype="multipart/form-data">
+          <div class="form-group">
+            <label for="photoInput">Choose a photo to analyze:</label>
+            <input 
+              type="file" 
+              class="form-control-file" 
+              id="photoInput" 
+              name="photo" 
+              accept="image/*" 
+              required
+              onchange="previewImage(event)">
+            <small class="form-text text-muted">Supported: JPG, PNG, GIF, WEBP (Max 5MB)</small>
+          </div>
+          
+          <!-- Image Preview -->
+          <div id="imagePreview" class="mb-3" style="display: none;">
+            <img id="preview" class="img-fluid rounded" style="max-height: 300px;" alt="Preview">
+          </div>
+          
+          <button type="submit" class="btn btn-primary btn-block">
+            🔍 Analyze Photo
+          </button>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Info Box -->
+    <div class="card border-info mb-4">
+      <div class="card-body">
+        <h5 class="card-title">What You'll Get:</h5>
+        <ul class="mb-0">
+          <li><strong>Object Detection:</strong> Identifies what's in your photo</li>
+          <li><strong>Color Analysis:</strong> Shows dominant colors with percentages</li>
+          <li><strong>Landmark Detection:</strong> Recognizes famous places</li>
+          <li><strong>Text Recognition:</strong> Extracts any text from the image</li>
+          <li><strong>Scene Understanding:</strong> Describes the overall scene</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Recent Analyses -->
+  <div class="col-md-6">
+    <h4 class="mb-3">Your Recent Analyses</h4>
+    
+    {% if analyses %}
+      {% for analysis in analyses %}
+        <div class="card mb-3">
+          <div class="row no-gutters">
+            <div class="col-md-4">
+              <img 
+                src="{{ url_for('static', filename='uploads/analyses/' + analysis.filename) }}" 
+                class="card-img" 
+                alt="{{ analysis.original_filename }}"
+                style="height: 100%; object-fit: cover;">
+            </div>
+            <div class="col-md-8">
+              <div class="card-body p-2">
+                <h6 class="card-title mb-1">{{ analysis.original_filename }}</h6>
+                
+                {% if analysis.labels %}
+                  <div class="mb-1">
+                    <small class="text-muted">Contains:</small><br>
+                    {% for label in analysis.labels[:3] %}
+                      <span class="badge badge-secondary badge-sm">{{ label.name }}</span>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+                
+                <small class="text-muted d-block mb-2">
+                  {{ analysis.analyzed_at.strftime('%b %d, %Y at %I:%M %p') }}
+                </small>
+                
+                <div class="btn-group btn-group-sm">
+                  <a href="{{ url_for('analysis_detail', analysis_id=analysis.id) }}" 
+                     class="btn btn-sm btn-outline-primary">
+                    View Details
+                  </a>
+                  <form method="post" 
+                        action="{{ url_for('delete_analysis', analysis_id=analysis.id) }}" 
+                        style="display: inline;"
+                        onsubmit="return confirm('Delete this analysis?');">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="alert alert-info">
+        <p class="mb-0">No analyses yet. Upload a photo above to get started!</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function previewImage(event) {
+  const preview = document.getElementById('preview');
+  const previewContainer = document.getElementById('imagePreview');
+  const file = event.target.files[0];
+  
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      preview.src = e.target.result;
+      previewContainer.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+}
+</script>
+
+{% endblock %}

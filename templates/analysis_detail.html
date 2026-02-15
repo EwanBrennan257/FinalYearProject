@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Analysis: {{ analysis.original_filename }}{% endblock %}
+
+{% block content %}
+
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('analyze_page') }}">Photo Analysis</a></li>
+    <li class="breadcrumb-item active">{{ analysis.original_filename }}</li>
+  </ol>
+</nav>
+
+<h2 class="mb-4">📊 Photo Analysis Results</h2>
+
+<div class="row">
+  <!-- Photo -->
+  <div class="col-md-6">
+    <div class="card mb-4">
+      <img 
+        src="{{ url_for('static', filename='uploads/analyses/' + analysis.filename) }}" 
+        class="card-img-top" 
+        alt="{{ analysis.original_filename }}">
+      <div class="card-body">
+        <h5 class="card-title">{{ analysis.original_filename }}</h5>
+        <p class="text-muted">Analyzed: {{ analysis.analyzed_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+        
+        {% if analysis.properties and analysis.properties.summary %}
+          <div class="alert alert-info mb-3">
+            <strong>📝 Summary:</strong> {{ analysis.properties.summary }}
+          </div>
+        {% endif %}
+        
+        {% if analysis.properties and analysis.properties.caption %}
+          <div class="alert alert-light border">
+            <strong>🎬 Scene Description:</strong><br>
+            <em>"{{ analysis.properties.caption }}"</em>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  
+  <!-- Analysis Results -->
+  <div class="col-md-6">
+    
+    <!-- Labels/Objects Detected -->
+    {% if analysis.labels and analysis.labels|length > 0 %}
+    <div class="card mb-3">
+      <div class="card-header bg-primary text-white">
+        <strong>🏷️ Detected Objects & Scenes</strong>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          {% for label in analysis.labels %}
+            <div class="col-md-6 mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="badge badge-pill badge-primary">{{ label.name }}</span>
+                <small class="text-muted">{{ label.confidence }}%</small>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div 
+                  class="progress-bar bg-primary" 
+                  role="progressbar"
+                  style="width: {{ label.confidence }}%"
+                  aria-valuenow="{{ label.confidence }}" 
+                  aria-valuemin="0" 
+                  aria-valuemax="100">
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    
+    <!-- Dominant Colors -->
+    {% if analysis.colors and analysis.colors|length > 0 %}
+    <div class="card mb-3">
+      <div class="card-header bg-success text-white">
+        <strong>🎨 Color Breakdown</strong>
+      </div>
+      <div class="card-body">
+        {% for color in analysis.colors %}
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <div class="d-flex align-items-center">
+                <div style="width: 40px; height: 40px; background-color: {{ color.hex }}; 
+                            border: 2px solid #ddd; border-radius: 6px; margin-right: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                </div>
+                <div>
+                  <strong>{{ color.hex }}</strong><br>
+                  <small class="text-muted">RGB({{ color.rgb.r }}, {{ color.rgb.g }}, {{ color.rgb.b }})</small>
+                </div>
+              </div>
+              <span class="badge badge-success badge-pill" style="font-size: 1rem;">{{ color.percentage }}%</span>
+            </div>
+            <div class="progress" style="height: 24px;">
+              <div 
+                class="progress-bar" 
+                role="progressbar"
+                style="width: {{ color.percentage }}%; background-color: {{ color.hex }};"
+                aria-valuenow="{{ color.percentage }}" 
+                aria-valuemin="0" 
+                aria-valuemax="100">
+                <span style="color: {% if color.rgb.r + color.rgb.g + color.rgb.b > 400 %}#333{% else %}#fff{% endif %}; font-weight: 600;">
+                  {{ color.percentage }}%
+                </span>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    
+    <!-- If no results -->
+    {% if not analysis.labels and not analysis.colors %}
+    <div class="alert alert-warning">
+      <strong>⚠️ Analysis Incomplete</strong><br>
+      This photo may not have been fully analyzed. Try uploading it again.
+    </div>
+    {% endif %}
+    
+  </div>
+</div>
+
+<!-- Action Buttons -->
+<div class="mt-4 mb-5">
+  <a href="{{ url_for('analyze_page') }}" class="btn btn-secondary">
+    ← Back to Analysis Tool
+  </a>
+  <form method="post" 
+        action="{{ url_for('delete_analysis', analysis_id=analysis.id) }}" 
+        style="display: inline;"
+        onsubmit="return confirm('Are you sure you want to delete this analysis?');">
+    <button type="submit" class="btn btn-danger">
+      🗑️ Delete Analysis
+    </button>
+  </form>
+</div>
+
+{% endblock %}
