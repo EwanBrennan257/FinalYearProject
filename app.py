@@ -103,6 +103,11 @@ app.config["PREFERRED_URL_SCHEME"] = os.getenv("PREFERRED_URL_SCHEME", "http")
 
 #connect database to flask and project
 db = SQLAlchemy(app)
+
+# Create tables if they don't exist (temporary - for initial deployment)
+with app.app_context():
+    db.create_all()
+
 #creates sqlachemy helper in this app.
 login_manager = LoginManager(app)#tracks whos logged in
 login_manager.login_view = "login"#if user trys to access login only page
