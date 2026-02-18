@@ -22,21 +22,20 @@
     <!-- Header -->
     <header class="blog-header py-3">
   <div class="row flex-nowrap justify-content-between align-items-center">
-    <div class="col-4 pt-1">
+    <div class="col-3 pt-1">
       <a class="text-muted" href="{{ url_for('home') }}">Home</a>
     </div>
 
-    <div class="col-4 text-center">
+    <div class="col-6 text-center">
       <a class="blog-header-logo text-dark" href="{{ url_for('home') }}">Cork Photographers</a>
+      <div class="mt-2">
+        <a href="{{ url_for('analyze_page') }}" class="text-muted small">Photo Analysis</a> | 
+        <a href="{{ url_for('trips.trips_list') }}" class="text-muted small">Trips</a> | 
+        <a href="{{ url_for('assistant_page') }}" class="text-muted small">📸 AI Assistant</a>
+      </div>
     </div>
 
-    <div class="col-4 text-center">
-      <a href="{{ url_for('analyze_page') }}">Photo Analysis</a> | 
-      <a href="{{ url_for('trips.trips_list') }}">Trips</a> | 
-      <a href="{{ url_for('assistant_page') }}">📸 AI Assistant</a>
-    </div>
-
-    <div class="col-4 d-flex justify-content-end align-items-center">
+    <div class="col-3 d-flex justify-content-end align-items-center">
       {% if current_user.is_authenticated %}
         <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('logout') }}">Log out</a>
       {% else %}
