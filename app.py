@@ -74,9 +74,14 @@ cloudinary.config(
 )
 
 # File upload configuration
+UPLOAD_FOLDER = os.path.join(BASE, "static", "uploads")
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER  # ← ADD THIS LINE
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
+
+# Create uploads folder if needed
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
     """Check if file extension is allowed"""
