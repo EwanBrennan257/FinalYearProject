@@ -480,6 +480,22 @@ def delete_photo(photo_id):
     return redirect(url_for("location_detail", slug=slug))
 
 
+# Initialize analyzer
+photo_analyzer = PhotoAnalyzer()
+
+@app.route("/analyze")
+@login_required
+def analyze_page():
+    """Photo analysis tool page"""
+    # Get user's previous analyses
+    analyses = PhotoAnalysis.query.filter_by(user_id=current_user.id)\
+        .order_by(PhotoAnalysis.analyzed_at.desc())\
+        .limit(10)\
+        .all()
+    
+    return render_template("analyze.html", analyses=analyses)
+
+
 @app.route("/analyze/upload", methods=["POST"])
 @login_required
 def analyze_upload():
