@@ -203,4 +203,41 @@ function initLocationMap() {
   
   <hr>
   
+  <hr>
+  
+  <!-- Photo List -->
+  {% if location.photos %}
+  <div class="photos-sidebar">
+    {% for photo in location.photos|sort(attribute='uploaded_at', reverse=True) %}
+    <div class="mb-3">
+      <img src="https://res.cloudinary.com/{{ cloudinary_cloud_name }}/image/upload/w_400,h_300,c_fill/{{ photo.cloudinary_public_id }}" 
+           class="img-fluid rounded" 
+           alt="{{ photo.original_filename }}"
+           style="cursor: pointer; width: 100%; height: 180px; object-fit: cover;"
+           onclick="window.open(this.src.replace('w_400,h_300,c_fill/', ''), '_blank')">
+      
+      {% if photo.caption %}
+      <p class="mb-1 mt-2 small">{{ photo.caption }}</p>
+      {% endif %}
+      
+      <p class="text-muted mb-1" style="font-size: 0.75rem;">
+        📷 {{ photo.user.email }}<br>
+        {{ photo.uploaded_at.strftime("%Y-%m-%d") }}
+      </p>
+      
+      {% if current_user.is_authenticated and (current_user.id == photo.user_id or current_user.role == "admin") %}
+      <form method="post" action="{{ url_for('delete_photo', photo_id=photo.id) }}" style="display: inline;" onsubmit="return confirm('Delete this photo?');">
+        <button type="submit" class="btn btn-sm btn-outline-danger btn-block">Delete</button>
+      </form>
+      {% endif %}
+    </div>
+    <hr>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-muted small">No photos yet. Be the first!</p>
+  {% endif %}
+</div>
+{% endblock %}
+
 {% endblock %}

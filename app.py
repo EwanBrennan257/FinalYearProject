@@ -2,6 +2,9 @@
 import os, datetime as dt
 import uuid
 from werkzeug.utils import secure_filename
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 #use this to find other files in relation to this locaiton
 BASE = os.path.dirname(os.path.abspath(__file__))
 #trys to load api keys and password from .env
@@ -62,16 +65,18 @@ if database_url and database_url.startswith("postgres://"):
 
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 
+# Cloudinary configuration
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True
+)
+
 # File upload configuration
-UPLOAD_FOLDER = os.path.join(BASE, "static", "uploads")
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
-
-# Create uploads folder if it doesn't exist
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
     """Check if file extension is allowed"""
@@ -116,8 +121,11 @@ login_manager.login_view = "login"#if user trys to access login only page
 mail = Mail(app)#connect email system to the flask app
 
 @app.context_processor
-def inject_google_maps_key():#makes it available to all templates, eliminates need for passing the key in every route
-    return dict(google_maps_api_key=os.getenv("GOOGLE_MAPS_API_KEY"))#return dictionary of variables to inject into template context
+def inject_google_maps_key():
+    return dict(
+        google_maps_api_key=os.getenv("GOOGLE_MAPS_API_KEY"),
+        cloudinary_cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME")
+    )
 
 class Location(db.Model): #tabke for photography spots
     id = db.Column(db.Integer, primary_key=True) #locations id primary key 
@@ -184,9 +192,9 @@ class Photo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     location_id = db.Column(db.Integer, db.ForeignKey("location.id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    filename = db.Column(db.String(255), nullable=False)  # stored filename
-    original_filename = db.Column(db.String(255))  # user's original filename
-    caption = db.Column(db.String(500))  # optional caption
+    cloudinary_public_id = db.Column(db.String(255), nullable=False)  # Changed from filename
+    original_filename = db.Column(db.String(255))
+    caption = db.Column(db.String(500))
     uploaded_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
 
 # NEW: Separate table for photo analyses
@@ -389,7 +397,7 @@ def location_detail(slug):
 @app.route("/l/<slug>/upload", methods=["POST"])
 @login_required
 def upload_photo(slug):
-    """Handle photo upload for a location"""
+    """Handle photo upload for a location using Cloudinary"""
     loc = Location.query.filter_by(slug=slug).first_or_404()
     
     if 'photo' not in request.files:
@@ -403,31 +411,38 @@ def upload_photo(slug):
         return redirect(url_for("location_detail", slug=slug))
     
     if file and allowed_file(file.filename):
-        # Generate unique filename
-        original_filename = secure_filename(file.filename)
-        extension = original_filename.rsplit('.', 1)[1].lower()
-        unique_filename = f"{current_user.id}_{int(dt.datetime.utcnow().timestamp())}_{uuid.uuid4().hex[:8]}.{extension}"
+        try:
+            # Upload to Cloudinary
+            upload_result = cloudinary.uploader.upload(
+                file,
+                folder="cork_photographers",  # Organize photos in a folder
+                resource_type="auto"
+            )
+            
+            # Get the public_id from Cloudinary response
+            cloudinary_public_id = upload_result['public_id']
+            
+            # Get optional caption
+            caption = request.form.get("caption", "").strip()
+            if len(caption) > 500:
+                caption = caption[:500]
+            
+            # Save to database
+            photo = Photo(
+                location_id=loc.id,
+                user_id=current_user.id,
+                cloudinary_public_id=cloudinary_public_id,
+                original_filename=file.filename,
+                caption=caption
+            )
+            db.session.add(photo)
+            db.session.commit()
+            
+            flash("Photo uploaded successfully!", "success")
         
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-        file.save(filepath)
-        
-        # Get optional caption
-        caption = request.form.get("caption", "").strip()
-        if len(caption) > 500:
-            caption = caption[:500]
-        
-        # Save to database
-        photo = Photo(
-            location_id=loc.id,
-            user_id=current_user.id,
-            filename=unique_filename,
-            original_filename=original_filename,
-            caption=caption
-        )
-        db.session.add(photo)
-        db.session.commit()
-        
-        flash("Photo uploaded successfully!", "success")
+        except Exception as e:
+            print(f"Upload error: {e}")
+            flash("Failed to upload photo. Please try again.", "danger")
     else:
         flash("Invalid file type. Please upload a valid image (PNG, JPG, JPEG, GIF, WEBP).", "warning")
     
@@ -444,35 +459,20 @@ def delete_photo(photo_id):
     if photo.user_id != current_user.id and current_user.role != "admin":
         abort(403)
     
-    # Delete file from disk
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], photo.filename)
-    if os.path.exists(filepath):
-        try:
-            os.remove(filepath)
-        except Exception as e:
-            print(f"Failed to delete file: {e}")
-    
     slug = photo.location.slug
+    
+    try:
+        # Delete from Cloudinary
+        cloudinary.uploader.destroy(photo.cloudinary_public_id)
+    except Exception as e:
+        print(f"Failed to delete from Cloudinary: {e}")
+    
+    # Delete from database
     db.session.delete(photo)
     db.session.commit()
     
     flash("Photo deleted.", "success")
     return redirect(url_for("location_detail", slug=slug))
-
-# Initialize analyzer
-photo_analyzer = PhotoAnalyzer()
-
-@app.route("/analyze")
-@login_required
-def analyze_page():
-    """Photo analysis tool page"""
-    # Get user's previous analyses
-    analyses = PhotoAnalysis.query.filter_by(user_id=current_user.id)\
-        .order_by(PhotoAnalysis.analyzed_at.desc())\
-        .limit(10)\
-        .all()
-    
-    return render_template("analyze.html", analyses=analyses)
 
 
 @app.route("/analyze/upload", methods=["POST"])
