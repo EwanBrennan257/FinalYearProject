@@ -16,6 +16,7 @@ except Exception:#incase of error ignore and continue
 #import all flask items
 from flask import Flask, render_template, request, redirect, url_for, abort, flash, jsonify, session #flask object, render template renders jinja template/ html pages,
 #request redirect form handling and redirects
+#https://flask-sqlalchemy.readthedocs.io/en/stable/
 from flask_sqlalchemy import SQLAlchemy # handles sqlite 
 
 from services.sun import get_sun_times#API calls in service folder 
@@ -72,7 +73,9 @@ cloudinary.config(
     api_secret=os.getenv("CLOUDINARY_API_SECRET"),
     secure=True
 )
-
+#https://flask.palletsprojects.com/en/stable/patterns/fileuploads/
+#https://cloudinary.com/documentation/image_upload_api_reference
+#https://pypi.org/project/cloudinary/
 # File upload configuration
 UPLOAD_FOLDER = os.path.join(BASE, "static", "uploads")
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
@@ -84,7 +87,7 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
-    """Check if file extension is allowed"""
+    #Check if file extension is allowed
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 #stores sqlite folder in instance folder
@@ -180,7 +183,9 @@ class User(UserMixin, db.Model):#creates sqlalchemy model for users, usermixin h
         lazy=True,
         cascade="all, delete-orphan"
     )
-    
+#https://docs.sqlalchemy.org/en/21/orm/basic_relationships.html
+#https://docs.sqlalchemy.org/en/21/core/constraints.html
+#https://flask.palletsprojects.com/en/stable/patterns/flashing/
 class Review(db.Model):
     id = db.Column(db.Integer, primary_key=True)#reviews get unique id number
 
@@ -193,16 +198,14 @@ class Review(db.Model):
     created_at = db.Column(db.DateTime, default=dt.datetime.utcnow, nullable=False)#when was the review written at
 
 class Photo(db.Model):
-    """User-uploaded photos for locations"""
     id = db.Column(db.Integer, primary_key=True)
     location_id = db.Column(db.Integer, db.ForeignKey("location.id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    cloudinary_public_id = db.Column(db.String(255), nullable=False)  # Changed from filename
+    cloudinary_public_id = db.Column(db.String(255), nullable=False)
     original_filename = db.Column(db.String(255))
     caption = db.Column(db.String(500))
     uploaded_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
 
-# NEW: Separate table for photo analyses
 class PhotoAnalysis(db.Model):
     """Separate feature for analyzing photos"""
     id = db.Column(db.Integer, primary_key=True)
@@ -242,7 +245,7 @@ def admin_required(view_func):#if user who is not admin attempts to access admin
             abort(403)#returns 403 forbidden if is attempted
         return view_func(*args, **kwargs)#if admin let them go ahead
     return wrapper
-
+#https://pypi.org/project/python-slugify/
 def slugify(s: str):
     #makes the link readable, useful for english names
     #lowercase and coverrts and non numeric to hyphens
@@ -252,6 +255,12 @@ def slugify(s: str):
 
 def _confirm_serializer() -> URLSafeTimedSerializer:#tool used for creating secure tokens
     return URLSafeTimedSerializer(app.config["SECRET_KEY"])#tokens automatically expire
+
+#https://www.freecodecamp.org/news/setup-email-verification-in-flask-app/
+#https://mailtrap.io/blog/flask-email-verification/
+#https://www.youtube.com/watch?v=uE9ZesslPYU
+#https://www.youtube.com/watch?v=vF9n248M1yk
+
 
 #create confirmation token for users email
 def generate_confirmation_token(email: str) -> str:
@@ -398,7 +407,7 @@ def location_detail(slug):
         avg_rating=avg_rating,#pass average rating
         review_count=review_count,#pass review count
     )
-
+#https://cloudinary.com/documentation/image_upload_api_reference
 @app.route("/l/<slug>/upload", methods=["POST"])
 @login_required
 def upload_photo(slug):

@@ -3,6 +3,12 @@ from groq import Groq
 from typing import List, Dict, Any, Optional
 import os
 
+#previous sources but still relevant
+#https://realpython.com/ollama-python/
+#https://www.codewithfaraz.com/python/112/how-to-create-your-own-ai-chatbot-like-deepseek-with-ollama-in-python-flask
+#https://github.com/pritom007/ollama_chatbot
+#https://github.com/Holthuizen/WebGUI-Ollama
+
 # Model name to use
 MODEL_NAME = "llama-3.3-70b-versatile"  # Updated version
 
@@ -65,6 +71,10 @@ Rule of thumb: pick shutter for motion, aperture for the look (background blur),
 What's your budget range and what will you mainly shoot (landscapes, wildlife, sports)?"""
     }
 ]
+
+#https://github.com/groq/groq-python
+#https://github.com/groq/groq-api-cookbook
+
 
 class GroqAgent:
     # Agent class for interacting with Groq API
@@ -149,7 +159,7 @@ class GroqAgent:
             yield f"\n\n[Error: {str(e)}]"
     
     def is_model_available(self) -> bool:
-        # Check to see if API key is configured and working
+        # Check to see if API key is working
         # Return true if we can connect, if not false
         try:
             # Make a simple test request

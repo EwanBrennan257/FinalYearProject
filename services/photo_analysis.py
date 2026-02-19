@@ -1,21 +1,21 @@
-import requests
 import os
 from PIL import Image
 from typing import Dict, List
 from collections import Counter
 
+#https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.Image.quantize
+#https://realpython.com/image-processing-with-the-python-pillow-library/
+#https://stackoverflow.com/questions/3241929/how-to-find-the-dominant-most-common-color-in-an-image
 class PhotoAnalyzer:
     def __init__(self):
-        """Initialize Hugging Face API client"""
-        self.api_token = os.getenv('HUGGINGFACE_API_TOKEN')
-        self.headers = {"Authorization": f"Bearer {self.api_token}"} if self.api_token else {}
+        pass
     
     def analyze_photo(self, image_path: str) -> Dict:
         """
-        Comprehensive photo breakdown using Hugging Face models
+        Analyze photo colors only
         """
         try:
-            print(f"🔍 Starting analysis for: {image_path}")
+            print(f"🔍 Starting color analysis for: {image_path}")
             
             results = {
                 'success': True,
@@ -25,24 +25,14 @@ class PhotoAnalyzer:
                 'objects': []
             }
             
-            # 1. Generate image caption (describes the scene)
-            print("📝 Generating caption...")
-            caption = self._generate_caption(image_path)
-            print(f"✅ Caption: {caption}")
-            
-            if caption:
-                results['caption'] = caption
-                # Extract labels from caption
-                results['labels'] = self._extract_labels_from_caption(caption)
-            
-            # 2. Analyze colors (using PIL - completely free, no API)
+            # Analyze colors
             print("🎨 Analyzing colors...")
             colors = self._analyze_colors(image_path)
-            print(f"✅ Found {len(colors)} colors")
+            print(f"✅ Found {len(colors)} dominant colors")
             results['colors'] = colors
             
-            # 3. Generate summary
-            results['summary'] = self._generate_summary(results)
+            # Generate simple summary
+            results['summary'] = self._generate_summary(colors)
             
             print("✅ Analysis complete!")
             return results
@@ -54,50 +44,6 @@ class PhotoAnalyzer:
                 'error': f'Analysis failed: {str(e)}'
             }
     
-    def _generate_caption(self, image_path: str) -> str:
-        """Generate image caption using BLIP model"""
-        API_URL = "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large"
-        
-        try:
-            with open(image_path, "rb") as f:
-                data = f.read()
-            
-            response = requests.post(API_URL, headers=self.headers, data=data, timeout=30)
-            
-            if response.status_code == 200:
-                result = response.json()
-                if isinstance(result, list) and len(result) > 0:
-                    return result[0].get('generated_text', '')
-            else:
-                print(f"⚠️ Caption API returned status {response.status_code}")
-            return ''
-        except Exception as e:
-            print(f"⚠️ Caption generation error: {e}")
-            return ''
-    
-    def _extract_labels_from_caption(self, caption: str) -> List[Dict]:
-        """Extract meaningful labels from the caption"""
-        # Common photography subjects
-        photo_keywords = [
-            'mountain', 'sky', 'sunset', 'sunrise', 'ocean', 'sea', 'beach', 
-            'landscape', 'portrait', 'person', 'people', 'building', 'city',
-            'tree', 'forest', 'night', 'day', 'cloud', 'water', 'rock',
-            'bridge', 'street', 'road', 'car', 'nature', 'animal', 'bird',
-            'boat', 'harbor', 'house', 'river', 'lake', 'flower', 'garden'
-        ]
-        
-        caption_lower = caption.lower()
-        labels = []
-        
-        for keyword in photo_keywords:
-            if keyword in caption_lower:
-                labels.append({
-                    'name': keyword.capitalize(),
-                    'confidence': 85.0  # Approximate confidence
-                })
-        
-        return labels[:10]  # Return top 10
-    
     def _analyze_colors(self, image_path: str, num_colors: int = 6) -> List[Dict]:
         """Extract dominant colors using PIL with color quantization"""
         try:
@@ -107,10 +53,9 @@ class PhotoAnalyzer:
             img = img.resize((150, 150))
             
             # Quantize image to reduce to dominant colors
-            # This groups similar colors together
             img_quantized = img.quantize(colors=num_colors, method=2)
             
-            # Convert back to RGB to get the palette colors
+            # Convert back to RGB
             img_quantized = img_quantized.convert('RGB')
             
             # Get all pixels
@@ -140,18 +85,16 @@ class PhotoAnalyzer:
             print(f"❌ Color analysis error: {e}")
             return []
     
-    def _generate_summary(self, results: Dict) -> str:
-        """Generate human-readable summary"""
-        summary_parts = []
+    def _generate_summary(self, colors: List[Dict]) -> str:
+        """Generate simple summary based on dominant color"""
+        if not colors or len(colors) == 0:
+            return 'Photo color analysis complete.'
         
-        if results.get('caption'):
-            summary_parts.append(f"This photo shows {results['caption']}")
+        dominant_color = colors[0]
+        color_name = self._get_color_name(dominant_color['hex'])
+        percentage = dominant_color['percentage']
         
-        if results.get('colors') and len(results['colors']) > 0:
-            color_name = self._get_color_name(results['colors'][0]['hex'])
-            summary_parts.append(f"with dominant {color_name} tones")
-        
-        return '. '.join(summary_parts) + '.' if summary_parts else 'Photo analyzed.'
+        return f'This photo features {color_name} tones ({percentage}% dominant color).'
     
     def _get_color_name(self, hex_color: str) -> str:
         """Convert hex to approximate color name"""
@@ -160,16 +103,27 @@ class PhotoAnalyzer:
             g = int(hex_color[3:5], 16)
             b = int(hex_color[5:7], 16)
             
+            # Determine color name based on RGB values
             if r > 200 and g > 200 and b > 200:
                 return "light"
             elif r < 50 and g < 50 and b < 50:
                 return "dark"
-            elif r > g and r > b:
+            elif r > 200 and g < 100 and b < 100:
                 return "red"
-            elif g > r and g > b:
+            elif r < 100 and g > 200 and b < 100:
                 return "green"
-            elif b > r and b > g:
+            elif r < 100 and g < 100 and b > 200:
                 return "blue"
+            elif r > 200 and g > 200 and b < 100:
+                return "yellow"
+            elif r > 200 and g > 100 and b < 100:
+                return "orange"
+            elif r > 100 and g < 100 and b > 200:
+                return "purple"
+            elif r < 150 and g > 150 and b > 200:
+                return "cyan"
+            elif r > 150 and g < 150 and b > 150:
+                return "magenta"
             else:
                 return "neutral"
         except:

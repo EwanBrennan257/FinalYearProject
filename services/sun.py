@@ -1,5 +1,7 @@
 import requests, datetime as dt
+#https://www.w3schools.com/python/module_requests.asp
 #request http client and dt dates
+#https://sunrisesunset.io/api/
 API = "https://api.sunrisesunset.io/json"
 #sunrise sunset api endpoint
 def get_sun_times(lat: float, lon: float, date: dt.date):

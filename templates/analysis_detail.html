@@ -10,7 +10,7 @@
   </ol>
 </nav>
 
-<h2 class="mb-4">📊 Photo Analysis Results</h2>
+<h2 class="mb-4">🎨 Photo Analysis Results</h2>
 
 <div class="row">
   <!-- Photo -->
@@ -26,55 +26,17 @@
         
         {% if analysis.properties and analysis.properties.summary %}
           <div class="alert alert-info mb-3">
-            <strong>📝 Summary:</strong> {{ analysis.properties.summary }}
-          </div>
-        {% endif %}
-        
-        {% if analysis.properties and analysis.properties.caption %}
-          <div class="alert alert-light border">
-            <strong>🎬 Scene Description:</strong><br>
-            <em>"{{ analysis.properties.caption }}"</em>
+            <strong>📊 Summary:</strong> {{ analysis.properties.summary }}
           </div>
         {% endif %}
       </div>
     </div>
   </div>
   
-  <!-- Analysis Results -->
+ <!--https://pillow.readthedocs.io/en/stable/handbook/tutorial.html -->
+
+  <!-- Color Breakdown -->
   <div class="col-md-6">
-    
-    <!-- Labels/Objects Detected -->
-    {% if analysis.labels and analysis.labels|length > 0 %}
-    <div class="card mb-3">
-      <div class="card-header bg-primary text-white">
-        <strong>🏷️ Detected Objects & Scenes</strong>
-      </div>
-      <div class="card-body">
-        <div class="row">
-          {% for label in analysis.labels %}
-            <div class="col-md-6 mb-3">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <span class="badge badge-pill badge-primary">{{ label.name }}</span>
-                <small class="text-muted">{{ label.confidence }}%</small>
-              </div>
-              <div class="progress" style="height: 8px;">
-                <div 
-                  class="progress-bar bg-primary" 
-                  role="progressbar"
-                  style="width: {{ label.confidence }}%"
-                  aria-valuenow="{{ label.confidence }}" 
-                  aria-valuemin="0" 
-                  aria-valuemax="100">
-                </div>
-              </div>
-            </div>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-    {% endif %}
-    
-    <!-- Dominant Colors -->
     {% if analysis.colors and analysis.colors|length > 0 %}
     <div class="card mb-3">
       <div class="card-header bg-success text-white">
@@ -112,16 +74,12 @@
         {% endfor %}
       </div>
     </div>
-    {% endif %}
-    
-    <!-- If no results -->
-    {% if not analysis.labels and not analysis.colors %}
+    {% else %}
     <div class="alert alert-warning">
-      <strong>⚠️ Analysis Incomplete</strong><br>
-      This photo may not have been fully analyzed. Try uploading it again.
+      <strong>⚠️ No Colors Detected</strong><br>
+      Unable to analyze colors for this image.
     </div>
     {% endif %}
-    
   </div>
 </div>
 

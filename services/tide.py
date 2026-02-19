@@ -8,6 +8,13 @@ from bs4 import BeautifulSoup#html parsing library
 
 TIDE_URL = "https://www.tide-forecast.com/locations/Cork/tides/latest"#website being scraped for data
 
+#more references were used but these are the main ones other references are in the iteration 2 documentation
+#https://requests.readthedocs.io/en/latest/user/advanced/	
+#https://realpython.com/python-web-scraping-practical-introduction/
+#https://medium.com/@techwithpraisejames/web-scraping-with-beautifulsoup-and-requests-python-libraries-72c164b58316 21/11/2025
+#https://www.youtube.com/watch?v=ng2o98k983k&list=PL9Ga5UF-3kOxyFw6lCOWN13zIqxfRWDMg&index=2 
+#https://www.youtube.com/watch?v=87Gx3U0BDlo
+#https://www.youtube.com/watch?v=A1s1aGHoODs 
 
 UA = {"User-Agent": "FYP (contact: 122377081@umail.ucc.ie)"}#identifys me to the website
 

@@ -1,6 +1,8 @@
 import requests #client for calling weather api
-
+#https://www.w3schools.com/python/module_requests.asp
 BASE_URL = "https://api.met.no/weatherapi/locationforecast/2.0/compact"
+#https://weather.apis.ie/docs/#:~:text=The%20Met%20%C3%89ireann%20WDB%20API,hours%20out%20to%20240%20hours
+#https://api.met.no/weatherapi/locationforecast/2.0/documentation
 #compact JSON endpoint
 UA = {"User-Agent": "corkphoto-notide/1.0 122377081@umail.ucc.ie"}
 #identify app for met policy

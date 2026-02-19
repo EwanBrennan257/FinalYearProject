@@ -4,6 +4,9 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from sqlalchemy.exc import IntegrityError#import this to catch database constraint errors(adding same location twice)
 
+#https://flask-sqlalchemy.readthedocs.io/en/stable/queries/
+#https://flask-sqlalchemy.readthedocs.io/en/stable/legacy-query/
+#https://flask-sqlalchemy.readthedocs.io/en/stable/quickstart/
 
 def init_trips(db, Location):#this function sets up the trip feature as a blueprint
     #this is done to avoid circular imports
@@ -203,6 +206,10 @@ def init_trips(db, Location):#this function sets up the trip feature as a bluepr
     #attach model classes to blueprint used when im debugging or with errors
     trips_bp.Trip = Trip
     trips_bp.TripStop = TripStop
+
+    #https://docs.python.org/3/library/random.html
+    #https://docs.python.org/3/library/random.html#random.sample
+    #https://docs.python.org/3/library/random.html#random.choice
 
     # Generate a random trip flask route
     @trips_bp.route("/trips/random", methods=["POST"])#url endpoint
