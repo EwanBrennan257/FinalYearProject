@@ -66,7 +66,7 @@ if database_url and database_url.startswith("postgres://"):
 
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 
-# Cloudinary configuration
+#Cloudinary configuration
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
     api_key=os.getenv("CLOUDINARY_API_KEY"),
@@ -76,7 +76,7 @@ cloudinary.config(
 #https://flask.palletsprojects.com/en/stable/patterns/fileuploads/
 #https://cloudinary.com/documentation/image_upload_api_reference
 #https://pypi.org/project/cloudinary/
-# File upload configuration
+# file upload configuration
 UPLOAD_FOLDER = os.path.join(BASE, "static", "uploads")
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
@@ -207,13 +207,13 @@ class Photo(db.Model):
     uploaded_at = db.Column(db.DateTime, default=dt.datetime.utcnow)
 
 class PhotoAnalysis(db.Model):
-    """Separate feature for analyzing photos"""
+    
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     filename = db.Column(db.String(255), nullable=False)
     original_filename = db.Column(db.String(255))
     
-    # Analysis results
+    #these were meant to be added but i couldn't only here as i don't want to acidentally break system before submission
     labels = db.Column(db.JSON)  # Objects detected
     colors = db.Column(db.JSON)  # Dominant colors
     landmarks = db.Column(db.JSON)  # Famous places detected
@@ -411,37 +411,37 @@ def location_detail(slug):
 @app.route("/l/<slug>/upload", methods=["POST"])
 @login_required
 def upload_photo(slug):
-    """Handle photo upload for a location using Cloudinary"""
+    #looks up location with slug 
     loc = Location.query.filter_by(slug=slug).first_or_404()
-    
+    #checks whether the request uncluded a file named photo
     if 'photo' not in request.files:
         flash("No file selected.", "warning")
         return redirect(url_for("location_detail", slug=slug))
-    
+    #gets the uploaded file object
     file = request.files['photo']
-    
+    #if browser submits field with no filename no file was chosen
     if file.filename == '':
         flash("No file selected.", "warning")
         return redirect(url_for("location_detail", slug=slug))
-    
+    #ensure file is their and its type is allowed
     if file and allowed_file(file.filename):
         try:
-            # Upload to Cloudinary
+            #upload to Cloudinary
             upload_result = cloudinary.uploader.upload(
                 file,
                 folder="cork_photographers",  # Organize photos in a folder
                 resource_type="auto"
             )
             
-            # Get the public_id from Cloudinary response
+            #Get the public_id from Cloudinary response
             cloudinary_public_id = upload_result['public_id']
             
-            # Get optional caption
+            #Get optional caption
             caption = request.form.get("caption", "").strip()
             if len(caption) > 500:
                 caption = caption[:500]
             
-            # Save to database
+            #save to database
             photo = Photo(
                 location_id=loc.id,
                 user_id=current_user.id,
@@ -462,17 +462,17 @@ def upload_photo(slug):
     
     return redirect(url_for("location_detail", slug=slug))
 
-
+#route for deleting phot by id 
 @app.route("/photo/<int:photo_id>/delete", methods=["POST"])
 @login_required
 def delete_photo(photo_id):
-    """Delete a photo (owner or admin only)"""
+    
     photo = Photo.query.get_or_404(photo_id)
     
-    # Only owner or admin can delete
+    #only owner or admin can delete
     if photo.user_id != current_user.id and current_user.role != "admin":
         abort(403)
-    
+    #gets the location slug
     slug = photo.location.slug
     
     try:
@@ -481,7 +481,7 @@ def delete_photo(photo_id):
     except Exception as e:
         print(f"Failed to delete from Cloudinary: {e}")
     
-    # Delete from database
+    #delete from database
     db.session.delete(photo)
     db.session.commit()
     
@@ -489,14 +489,14 @@ def delete_photo(photo_id):
     return redirect(url_for("location_detail", slug=slug))
 
 
-# Initialize analyzer
+#initialize analyzer
 photo_analyzer = PhotoAnalyzer()
 
 @app.route("/analyze")
 @login_required
 def analyze_page():
-    """Photo analysis tool page"""
-    # Get user's previous analyses
+    
+    #get user's previous analyses
     analyses = PhotoAnalysis.query.filter_by(user_id=current_user.id)\
         .order_by(PhotoAnalysis.analyzed_at.desc())\
         .limit(10)\
@@ -508,7 +508,7 @@ def analyze_page():
 @app.route("/analyze/upload", methods=["POST"])
 @login_required
 def analyze_upload():
-    """Handle photo upload for analysis"""
+    #Handle photo upload for analysis
     if 'photo' not in request.files:
         flash("No file selected.", "warning")
         return redirect(url_for("analyze_page"))
@@ -520,32 +520,28 @@ def analyze_upload():
         return redirect(url_for("analyze_page"))
     
     if file and allowed_file(file.filename):
-        # Generate unique filename
+        #generate unique filename
         original_filename = secure_filename(file.filename)
         extension = original_filename.rsplit('.', 1)[1].lower()
         unique_filename = f"analysis_{current_user.id}_{int(dt.datetime.utcnow().timestamp())}_{uuid.uuid4().hex[:8]}.{extension}"
         
-        # Save to separate folder
+        #save to separate folder
         analysis_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'analyses')
         os.makedirs(analysis_folder, exist_ok=True)
         filepath = os.path.join(analysis_folder, unique_filename)
         file.save(filepath)
         
-        # Analyze the photo
+        #analyze the photo
         analysis_result = photo_analyzer.analyze_photo(filepath)
         
         if analysis_result['success']:
-            # Save analysis to database
+            #save analysis to database
             analysis = PhotoAnalysis(
                 user_id=current_user.id,
                 filename=unique_filename,
                 original_filename=original_filename,
-                labels=analysis_result.get('labels'),
                 colors=analysis_result.get('colors'),
-                landmarks=analysis_result.get('landmarks'),
-                text_found=analysis_result.get('text_found'),
                 properties={
-                    'objects': analysis_result.get('objects'),
                     'summary': analysis_result.get('summary')
                 }
             )
@@ -555,7 +551,7 @@ def analyze_upload():
             flash("Photo analyzed successfully!", "success")
             return redirect(url_for("analysis_detail", analysis_id=analysis.id))
         else:
-            # Analysis failed
+            #analysis failed
             flash(f"Analysis failed: {analysis_result.get('error', 'Unknown error')}", "danger")
             os.remove(filepath)  # Clean up file
             return redirect(url_for("analyze_page"))
@@ -567,10 +563,10 @@ def analyze_upload():
 @app.route("/analyze/<int:analysis_id>")
 @login_required
 def analysis_detail(analysis_id):
-    """View detailed analysis results"""
+    #loads analysis row from the db 
     analysis = PhotoAnalysis.query.get_or_404(analysis_id)
     
-    # Only owner can view
+    #only owner can view
     if analysis.user_id != current_user.id:
         abort(403)
     
@@ -580,21 +576,21 @@ def analysis_detail(analysis_id):
 @app.route("/analyze/<int:analysis_id>/delete", methods=["POST"])
 @login_required
 def delete_analysis(analysis_id):
-    """Delete an analysis"""
+    #gets the analysis
     analysis = PhotoAnalysis.query.get_or_404(analysis_id)
     
-    # Only owner can delete
+    #only owner can delete
     if analysis.user_id != current_user.id:
         abort(403)
     
-    # Delete file
+    #if the file exists try os.remove if not print error
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'analyses', analysis.filename)
     if os.path.exists(filepath):
         try:
             os.remove(filepath)
         except Exception as e:
             print(f"Failed to delete file: {e}")
-    
+    #removes the row from the db
     db.session.delete(analysis)
     db.session.commit()
     
@@ -751,10 +747,10 @@ def assistant_chat():
         # Add the new user message
         messages.append({"role": "user", "content": user_message})
         
-        # Get response from Ollama
+        # Get response from Groq
         result = agent.chat(messages)
         
-        if result["success"]:#check if ollama call was succesful
+        if result["success"]:#check if Groq call was succesful
             return jsonify({ #return success response to user
                 "success": True, #succesful api call
                 "response": result["message"], #the advice it gives

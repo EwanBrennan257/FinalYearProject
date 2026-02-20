@@ -11,27 +11,23 @@ class PhotoAnalyzer:
         pass
     
     def analyze_photo(self, image_path: str) -> Dict:
-        """
-        Analyze photo colors only
-        """
+        #analyzes photo colors
         try:
             print(f"🔍 Starting color analysis for: {image_path}")
-            
+            #results dictionary with fields
             results = {
                 'success': True,
-                'labels': [],
                 'colors': [],
                 'caption': '',
-                'objects': []
             }
             
-            # Analyze colors
+            #analyze colors
             print("🎨 Analyzing colors...")
             colors = self._analyze_colors(image_path)
             print(f"✅ Found {len(colors)} dominant colors")
             results['colors'] = colors
             
-            # Generate simple summary
+            #generate summary
             results['summary'] = self._generate_summary(colors)
             
             print("✅ Analysis complete!")
@@ -45,65 +41,68 @@ class PhotoAnalyzer:
             }
     
     def _analyze_colors(self, image_path: str, num_colors: int = 6) -> List[Dict]:
-        """Extract dominant colors using PIL with color quantization"""
+        #extract dominant colors from image using pil
+        #opens the image resize it for faster processing, reduces the image to a small pallet of colors
+        #count how often each color appears, convert into percentages
         try:
-            # Open and resize image
+            #open and resize image
             img = Image.open(image_path)
             img = img.convert('RGB')
             img = img.resize((150, 150))
             
-            # Quantize image to reduce to dominant colors
+            #ensures image is in standard rgb mode
             img_quantized = img.quantize(colors=num_colors, method=2)
             
-            # Convert back to RGB
+            #convert back to RGB
             img_quantized = img_quantized.convert('RGB')
             
-            # Get all pixels
+            #get all pixels
             pixels = list(img_quantized.getdata())
             
-            # Count occurrences of each color
+            #count occurrences of each color
             color_counts = Counter(pixels)
             most_common = color_counts.most_common(num_colors)
             
-            # Calculate percentages
+            #calculate percentages
             total_pixels = len(pixels)
             colors = []
-            
+            #percentafe of the image that this color covers
             for color, count in most_common:
                 percentage = (count / total_pixels) * 100
+                #convert rgb into tuple hex string
                 hex_color = '#{:02x}{:02x}{:02x}'.format(*color)
-                
+                #store a structured recored for this dominant color
                 colors.append({
                     'hex': hex_color,
                     'percentage': round(percentage, 1),
                     'rgb': {'r': color[0], 'g': color[1], 'b': color[2]}
                 })
-            
+            #return with percentages
             return colors
-            
+          #if any error occurs return empty list so app won't crash  
         except Exception as e:
             print(f"❌ Color analysis error: {e}")
             return []
-    
+    #checks if colors is empty if no colors are detected return message
     def _generate_summary(self, colors: List[Dict]) -> str:
-        """Generate simple summary based on dominant color"""
         if not colors or len(colors) == 0:
             return 'Photo color analysis complete.'
-        
+        #takes the first color as dominant one 
         dominant_color = colors[0]
+        #converts the dominant color hex code into name
         color_name = self._get_color_name(dominant_color['hex'])
+        #checks how much of the image dominant color covers
         percentage = dominant_color['percentage']
         
         return f'This photo features {color_name} tones ({percentage}% dominant color).'
     
     def _get_color_name(self, hex_color: str) -> str:
-        """Convert hex to approximate color name"""
-        try:
+        try: #converts the hext string into integers
             r = int(hex_color[1:3], 16)
             g = int(hex_color[3:5], 16)
             b = int(hex_color[5:7], 16)
             
-            # Determine color name based on RGB values
+            #determine color name based on RGB values
             if r > 200 and g > 200 and b > 200:
                 return "light"
             elif r < 50 and g < 50 and b < 50:
