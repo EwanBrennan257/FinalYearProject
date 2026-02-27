@@ -60,7 +60,7 @@ app = Flask(__name__, static_folder="static", template_folder="templates")
 # Get database URL from environment variable
 database_url = os.getenv("DATABASE_URL", "postgresql://postgres:Teddycork2016%3F@localhost:5432/fyp_database")
 
-# Render provides DATABASE_URL starting with postgres://, but SQLAlchemy needs postgresql://
+#render provides DATABASE_URL starting with postgres://, but SQLAlchemy needs postgresql://
 if database_url and database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
@@ -83,7 +83,7 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER  # ← ADD THIS LINE
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 
-# Create uploads folder if needed
+#create uploads folder if needed
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
@@ -141,6 +141,7 @@ class Location(db.Model): #tabke for photography spots
     slug = db.Column(db.String(200), nullable=False, unique=True) #Url version of the name
     lat = db.Column(db.Float, nullable=False) #coordinates for location
     lon = db.Column(db.Float, nullable=False) #coordinates for location
+    is_coastal = db.Column(db.Boolean, nullable=False, default=True)#is this location near the coast
     notes = db.Column(db.String(400)) #fact or notes while creating location can be included 
     reviews = db.relationship(#connects locations to their reviews
         "Review",#reviews come from review table
@@ -153,6 +154,12 @@ class Location(db.Model): #tabke for photography spots
         backref="location",
         lazy=True,
         cascade="all, delete-orphan"
+    )
+    visits = db.relationship(
+        "Visit",
+        backref="location",
+        lazy=True,
+        cascade="all, delete-orphan"#delete a location delete its visits
     )
 
 class User(UserMixin, db.Model):#creates sqlalchemy model for users, usermixin helps flask manager login users
@@ -183,6 +190,13 @@ class User(UserMixin, db.Model):#creates sqlalchemy model for users, usermixin h
         lazy=True,
         cascade="all, delete-orphan"
     )
+    visits = db.relationship(
+        "Visit",
+        backref="user",
+        lazy=True,
+        cascade="all, delete-orphan"#delete a user delete their visits
+    )
+
 #https://docs.sqlalchemy.org/en/21/orm/basic_relationships.html
 #https://docs.sqlalchemy.org/en/21/core/constraints.html
 #https://flask.palletsprojects.com/en/stable/patterns/flashing/
@@ -196,6 +210,22 @@ class Review(db.Model):
     body = db.Column(db.String(1000), nullable=False)# review text
 
     created_at = db.Column(db.DateTime, default=dt.datetime.utcnow, nullable=False)#when was the review written at
+
+#a personal visit log for users to track locations they've been to
+class Visit(db.Model):
+    id = db.Column(db.Integer, primary_key=True)#unique id for each visit
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)#who visited
+    location_id = db.Column(db.Integer, db.ForeignKey("location.id"), nullable=False)#which location
+
+    visited_date = db.Column(db.Date, nullable=False)#when did they visit
+    note = db.Column(db.String(1000))#personal note about their visit
+
+    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow, nullable=False)#when was this record made
+
+    #each user can only mark a location as visited once
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "location_id", name="uq_user_location_visit"),
+    )
 
 class Photo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -227,6 +257,10 @@ class PhotoAnalysis(db.Model):
 
 from trips import init_trips
 app.register_blueprint(init_trips(db, Location))
+
+# Register the events blueprint
+from events import init_events
+app.register_blueprint(init_events(db, Location))
 
 # Initialize database tables on startup
 with app.app_context():
@@ -355,12 +389,13 @@ def add_location():
         lat = float(request.form.get("lat")) #latitude coordinate
         lon = float(request.form.get("lon")) #longitude coordinate
         notes = request.form.get("notes","" ).strip() #notes about location
+        is_coastal = request.form.get("is_coastal") == "yes"#check if they selected coastal
         if not name: abort(400) #validates the input, if not validated aborts returning error to user
         slug = slugify(name) #make a slug name and ensure its unique
         if db.session.query(Location.id).filter_by(slug=slug).first():
             import time; slug = f"{slug}-{int(time.time())}" #insures unique slug by appending timestamp
             #creates and saves a location 
-        loc = Location(name=name, lat=lat, lon=lon, notes=notes, slug=slug)
+        loc = Location(name=name, lat=lat, lon=lon, notes=notes, slug=slug, is_coastal=is_coastal)
         db.session.add(loc); db.session.commit()
         #redirects user to detail page to view the created location
         return redirect(url_for("location_detail", slug=slug))
@@ -377,7 +412,11 @@ def location_detail(slug):
     sun = get_sun_times(lat=loc.lat, lon=loc.lon, date=today)#fetches neseccary data required
     weather = get_weather_hours(lat=loc.lat, lon=loc.lon)#fetches neseccary data required
 
-    tide_info = get_cork_tides()
+    #only fetch tide data if the location is coastal
+    if loc.is_coastal:
+        tide_info = get_cork_tides()
+    else:
+        tide_info = {"high_tides": [], "low_tides": [], "error": None}
 
     reviews = (#get all reviews for a location
         Review.query# start a query on the table
@@ -395,6 +434,11 @@ def location_detail(slug):
     avg_rating = float(avg_rating) if avg_rating is not None else None
     review_count = len(reviews)#count the number of reviews
 
+    #check if current user has visited this location
+    user_visit = None
+    if current_user.is_authenticated:
+        user_visit = Visit.query.filter_by(user_id=current_user.id, location_id=loc.id).first()    
+
     return render_template( #renders the template and we give what data it requires
         "location.html",#which template to use
         location=loc,#location object
@@ -407,6 +451,7 @@ def location_detail(slug):
         avg_rating=avg_rating,#pass average rating
         review_count=review_count,#pass review count
     )
+
 #https://cloudinary.com/documentation/image_upload_api_reference
 @app.route("/l/<slug>/upload", methods=["POST"])
 @login_required
@@ -713,6 +758,174 @@ def add_review(slug):#function handles adding reviews
     flash("Review added.", "success")#tell them it worked
     return redirect(url_for("location_detail", slug=slug))#send back to location page
 
+# ── Edit review (only the owner can edit) ──
+@app.route("/review/<int:review_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_review(review_id):
+    review = Review.query.get_or_404(review_id)  # find the review or 404
+
+    # only the person who wrote the review can edit it
+    if review.user_id != current_user.id:
+        abort(403)  # forbidden if they don't own this review
+
+    if request.method == "POST":
+        rating_raw = (request.form.get("rating") or "").strip()
+        body = (request.form.get("body") or "").strip()
+
+        # validate rating
+        try:
+            rating = int(rating_raw)
+        except ValueError:
+            rating = 0
+
+        if rating < 1 or rating > 5:  # rating must be between 1 and 5
+            flash("Rating must be between 1 and 5 stars.", "warning")
+            return redirect(url_for("edit_review", review_id=review_id))
+
+        if not body:  # must write something
+            flash("Please write a short review comment.", "warning")
+            return redirect(url_for("edit_review", review_id=review_id))
+
+        if len(body) > 1000:  # max length check
+            flash("Review is too long (max 1000 characters).", "warning")
+            return redirect(url_for("edit_review", review_id=review_id))
+
+        # update the review fields
+        review.rating = rating
+        review.body = body
+        db.session.commit()  # save changes
+
+        flash("Review updated.", "success")
+        return redirect(url_for("location_detail", slug=review.location.slug))
+
+    # GET request – show the edit form
+    return render_template("edit_review.html", review=review)
+
+
+# ── Delete review (admin only) ──
+@app.route("/review/<int:review_id>/delete", methods=["POST"])
+@login_required
+def delete_review(review_id):
+    review = Review.query.get_or_404(review_id)  # find the review or 404
+
+    # only admins can delete reviews
+    if current_user.role != "admin":
+        abort(403)  # forbidden for non-admins
+
+    slug = review.location.slug  # save slug before deleting
+
+    db.session.delete(review)  # remove from database
+    db.session.commit()  # save the change
+
+    flash("Review deleted.", "success")
+    return redirect(url_for("location_detail", slug=slug))
+
+# ── Mark location as visited ──
+@app.route("/l/<slug>/visit", methods=["POST"])
+@login_required
+def add_visit(slug):#handles marking a location as visited
+    loc = Location.query.filter_by(slug=slug).first_or_404()
+
+    #check if they've already visited this location
+    existing = Visit.query.filter_by(user_id=current_user.id, location_id=loc.id).first()
+    if existing:
+        flash("You've already marked this location as visited.", "info")
+        return redirect(url_for("location_detail", slug=slug))
+
+    #get the date and note from the form
+    date_raw = (request.form.get("visited_date") or "").strip()
+    note = (request.form.get("note") or "").strip()
+
+    #validate date
+    try:
+        visited_date = dt.datetime.strptime(date_raw, "%Y-%m-%d").date()
+    except ValueError:
+        flash("Please enter a valid date.", "warning")
+        return redirect(url_for("location_detail", slug=slug))
+
+    #don't allow future dates
+    if visited_date > dt.date.today():
+        flash("Visit date can't be in the future.", "warning")
+        return redirect(url_for("location_detail", slug=slug))
+
+    if len(note) > 1000:#max length check
+        flash("Note is too long (max 1000 characters).", "warning")
+        return redirect(url_for("location_detail", slug=slug))
+
+    #create the visit
+    v = Visit(user_id=current_user.id, location_id=loc.id, visited_date=visited_date, note=note)
+    db.session.add(v)
+    db.session.commit()
+
+    flash("Location marked as visited!", "success")
+    return redirect(url_for("location_detail", slug=slug))
+
+
+# ── Edit a visit note ──
+@app.route("/visit/<int:visit_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_visit(visit_id):#allows user to update their visit note and date
+    visit = Visit.query.get_or_404(visit_id)
+
+    #only the person who made the visit can edit it
+    if visit.user_id != current_user.id:
+        abort(403)
+
+    if request.method == "POST":
+        date_raw = (request.form.get("visited_date") or "").strip()
+        note = (request.form.get("note") or "").strip()
+
+        try:
+            visited_date = dt.datetime.strptime(date_raw, "%Y-%m-%d").date()
+        except ValueError:
+            flash("Please enter a valid date.", "warning")
+            return redirect(url_for("edit_visit", visit_id=visit_id))
+
+        if visited_date > dt.date.today():
+            flash("Visit date can't be in the future.", "warning")
+            return redirect(url_for("edit_visit", visit_id=visit_id))
+
+        if len(note) > 1000:
+            flash("Note is too long (max 1000 characters).", "warning")
+            return redirect(url_for("edit_visit", visit_id=visit_id))
+
+        visit.visited_date = visited_date
+        visit.note = note
+        db.session.commit()
+
+        flash("Visit updated.", "success")
+        return redirect(url_for("location_detail", slug=visit.location.slug))
+
+    return render_template("edit_visit.html", visit=visit)
+
+
+# ── Remove a visit ──
+@app.route("/visit/<int:visit_id>/delete", methods=["POST"])
+@login_required
+def delete_visit(visit_id):#allows user to unmark a location as visited
+    visit = Visit.query.get_or_404(visit_id)
+
+    if visit.user_id != current_user.id:
+        abort(403)
+
+    slug = visit.location.slug
+    db.session.delete(visit)
+    db.session.commit()
+
+    flash("Visit removed.", "success")
+    return redirect(url_for("location_detail", slug=slug))
+
+
+# ── My Visits page — shows all locations the user has visited ──
+@app.route("/my-visits")
+@login_required
+def my_visits():#shows all locations the current user has marked as visited
+    visits = (
+        Visit.query.filter_by(user_id=current_user.id)
+        .order_by(Visit.visited_date.desc())
+        .all()
+    )
+    return render_template("my_visits.html", visits=visits)
 
 @app.route("/assistant")
 @login_required 

@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% block title %}{{ event.title }} - Cork Photographers{% endblock %}
+
+{% block content %}
+<h2>{{ event.title }}</h2>
+
+<div class="mb-3">
+  {% if event.is_ended() %}
+    <span class="badge badge-secondary p-2">✅ Ended</span>
+  {% else %}
+    <span class="badge badge-primary p-2">📅 Upcoming</span>
+  {% endif %}
+
+  <span class="ml-2">
+    {{ event.event_date.strftime("%A, %B %d, %Y") }}
+    {% if event.event_time %} at {{ event.event_time.strftime("%H:%M") }}{% endif %}
+  </span>
+  <span class="text-muted ml-2">— Organised by {{ event.creator.email }}</span>
+</div>
+
+{% if event.description %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <p class="mb-0">{{ event.description }}</p>
+    </div>
+  </div>
+{% endif %}
+
+<!-- Google Maps -->
+{% if stops %}
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">🗺️ Event Route</h5>
+    <div id="event-map" style="height: 450px; width: 100%; border-radius: 8px;"></div>
+    <p class="text-muted mt-2 mb-0">
+      <small>{{ stops|length }} location{{ 's' if stops|length != 1 else '' }} in this event</small>
+    </p>
+  </div>
+</div>
+{% endif %}
+
+<hr>
+
+<!-- Creator controls: add locations -->
+{% if current_user.is_authenticated and current_user.id == event.user_id %}
+  <h3>Add a location</h3>
+  <form method="post" action="{{ url_for('events.event_add_location', event_id=event.id) }}">
+    <select name="location_id" required>
+      <option value="">-- select a location --</option>
+      {% for loc in locations %}
+        <option value="{{ loc.id }}">{{ loc.name }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">Add</button>
+  </form>
+  <hr>
+{% endif %}
+
+<h3>Event Locations</h3>
+
+{% if stops %}
+  <ol>
+    {% for s in stops %}
+      <li style="margin-bottom: .75rem;">
+        <a href="{{ url_for('location_detail', slug=s.location.slug) }}">{{ s.location.name }}</a>
+
+        <!-- Only the creator can reorder/remove -->
+        {% if current_user.is_authenticated and current_user.id == event.user_id %}
+        <div style="display:inline-block; margin-left: .75rem;">
+          <form method="post" action="{{ url_for('events.event_move_stop', event_id=event.id, stop_id=s.id) }}" style="display:inline;">
+            <input type="hidden" name="direction" value="up">
+            <button type="submit">↑</button>
+          </form>
+
+          <form method="post" action="{{ url_for('events.event_move_stop', event_id=event.id, stop_id=s.id) }}" style="display:inline;">
+            <input type="hidden" name="direction" value="down">
+            <button type="submit">↓</button>
+          </form>
+
+          <form method="post" action="{{ url_for('events.event_remove_stop', event_id=event.id, stop_id=s.id) }}" style="display:inline;">
+            <button type="submit">Remove</button>
+          </form>
+        </div>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ol>
+{% else %}
+  <p class="text-muted">No locations added yet.</p>
+{% endif %}
+
+<hr>
+
+<!-- Creator / Admin actions -->
+{% if current_user.is_authenticated %}
+  <div class="mb-3">
+    {% if current_user.id == event.user_id %}
+      <a href="{{ url_for('events.event_edit', event_id=event.id) }}" class="btn btn-outline-primary btn-sm">Edit Event</a>
+
+      {# Complete / Reopen button for the creator #}
+      {% if not event.is_ended() %}
+        <form method="post" action="{{ url_for('events.event_complete', event_id=event.id) }}" style="display:inline;" onsubmit="return confirm('Mark this event as completed?');">
+          <button type="submit" class="btn btn-outline-success btn-sm">✅ Mark as Completed</button>
+        </form>
+      {% elif event.status == 'completed' %}
+        {# Only show reopen if it was manually completed, not just expired by time #}
+        <form method="post" action="{{ url_for('events.event_reopen', event_id=event.id) }}" style="display:inline;">
+          <button type="submit" class="btn btn-outline-info btn-sm">🔄 Reopen Event</button>
+        </form>
+      {% endif %}
+    {% endif %}
+
+    {% if current_user.id == event.user_id or current_user.role == 'admin' %}
+      <form method="post" action="{{ url_for('events.event_delete', event_id=event.id) }}" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this event?');">
+        <button type="submit" class="btn btn-outline-danger btn-sm">Delete Event</button>
+      </form>
+    {% endif %}
+  </div>
+{% endif %}
+
+<p><a href="{{ url_for('events.events_list') }}">← Back to events</a></p>
+
+<!-- Google Maps for event route -->
+{% if stops %}
+<script>
+function initEventMap() {
+  const stops = [
+    {% for s in stops %}
+    {
+      lat: {{ s.location.lat }},
+      lng: {{ s.location.lon }},
+      name: '{{ s.location.name }}',
+      position: {{ s.position }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
+
+  if (stops.length === 0) return;
+
+  const map = new google.maps.Map(document.getElementById('event-map'), {
+    zoom: 10,
+    center: stops[0],
+    mapTypeId: 'roadmap'
+  });
+
+  // Markers for each location
+  const markers = stops.map((stop, index) => {
+    const marker = new google.maps.Marker({
+      position: { lat: stop.lat, lng: stop.lng },
+      map: map,
+      label: (index + 1).toString(),
+      title: stop.name
+    });
+
+    const infoWindow = new google.maps.InfoWindow({
+      content: `<div style="padding: 8px;"><strong>Stop ${index + 1}</strong><br>${stop.name}</div>`
+    });
+
+    marker.addListener('click', function() {
+      infoWindow.open(map, marker);
+    });
+
+    return marker;
+  });
+
+  // Draw route along roads using Directions Service
+  if (stops.length > 1) {
+    const directionsService = new google.maps.DirectionsService();
+    const directionsRenderer = new google.maps.DirectionsRenderer({
+      map: map,
+      suppressMarkers: true,
+      polylineOptions: {
+        strokeColor: '#28a745',
+        strokeOpacity: 0.8,
+        strokeWeight: 4
+      }
+    });
+
+    const origin = { lat: stops[0].lat, lng: stops[0].lng };
+    const destination = { lat: stops[stops.length - 1].lat, lng: stops[stops.length - 1].lng };
+
+    const waypoints = stops.slice(1, -1).map(stop => ({
+      location: { lat: stop.lat, lng: stop.lng },
+      stopover: true
+    }));
+
+    directionsService.route(
+      {
+        origin: origin,
+        destination: destination,
+        waypoints: waypoints,
+        travelMode: google.maps.TravelMode.DRIVING
+      },
+      function(result, status) {
+        if (status === google.maps.DirectionsStatus.OK) {
+          directionsRenderer.setDirections(result);
+        } else {
+          // Fallback to straight lines if directions fail
+          console.warn("Directions request failed: " + status);
+          const path = stops.map(s => ({ lat: s.lat, lng: s.lng }));
+          const polyline = new google.maps.Polyline({
+            path: path,
+            geodesic: true,
+            strokeColor: '#28a745',
+            strokeOpacity: 0.8,
+            strokeWeight: 3
+          });
+          polyline.setMap(map);
+        }
+      }
+    );
+  }
+
+  // Fit map to all locations
+  const bounds = new google.maps.LatLngBounds();
+  stops.forEach(stop => bounds.extend({ lat: stop.lat, lng: stop.lng }));
+  map.fitBounds(bounds);
+}
+</script>
+
+<script async defer
+  src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initEventMap">
+</script>
+{% endif %}
+
+{% endblock %}

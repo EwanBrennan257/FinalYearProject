@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Community Events - Cork Photographers{% endblock %}
+
+{% block content %}
+<div class="jumbotron p-3 p-md-5 text-white rounded bg-dark">
+  <div class="col-md-10 px-0">
+    <h1 class="display-4">📅 Community Events</h1>
+    <p class="lead my-3">
+      Photography meetups and events around Cork.
+    </p>
+  </div>
+</div>
+
+{% if current_user.is_authenticated %}
+  <a href="{{ url_for('events.events_create') }}" class="btn btn-primary mb-4">+ Create Event</a>
+{% else %}
+  <p class="text-muted mb-4"><a href="{{ url_for('login') }}">Log in</a> to create an event.</p>
+{% endif %}
+
+<h3 class="mb-3">Upcoming Events</h3>
+
+{% if upcoming %}
+  <div class="list-group mb-4">
+    {% for e in upcoming %}
+      <a href="{{ url_for('events.event_detail', event_id=e.id) }}" class="list-group-item list-group-item-action">
+        <div class="d-flex w-100 justify-content-between">
+          <h5 class="mb-1">{{ e.title }}</h5>
+          {% if e.is_ended() %}
+            <span class="badge badge-secondary badge-pill">✅ Ended</span>
+          {% else %}
+            <span class="badge badge-primary badge-pill">
+              {{ e.event_date.strftime("%b %d, %Y") }}
+              {% if e.event_time %} at {{ e.event_time.strftime("%H:%M") }}{% endif %}
+            </span>
+          {% endif %}
+        </div>
+        <p class="mb-1 text-muted">
+          Organised by {{ e.creator.email }}
+          — {{ e.stops|length }} location{{ 's' if e.stops|length != 1 else '' }}
+        </p>
+        {% if e.description %}
+          <small class="text-muted">{{ e.description[:150] }}{% if e.description|length > 150 %}…{% endif %}</small>
+        {% endif %}
+      </a>
+    {% endfor %}
+{% else %}
+  <div class="alert alert-info">
+    <strong>No upcoming events.</strong> Be the first to organise one!
+  </div>
+{% endif %}
+
+{% if past %}
+  <hr>
+  <h3 class="mb-3 text-muted">Past Events</h3>
+  <div class="list-group mb-4">
+    {% for e in past %}
+      <a href="{{ url_for('events.event_detail', event_id=e.id) }}" class="list-group-item list-group-item-action list-group-item-light">
+        <div class="d-flex w-100 justify-content-between">
+          <h5 class="mb-1 text-muted">{{ e.title }}</h5>
+          <span class="badge badge-secondary badge-pill">
+            {{ e.event_date.strftime("%b %d, %Y") }}
+          </span>
+        </div>
+        <p class="mb-1 text-muted">
+          Organised by {{ e.creator.email }}
+          — {{ e.stops|length }} location{{ 's' if e.stops|length != 1 else '' }}
+        </p>
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% endblock %}

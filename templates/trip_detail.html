@@ -114,22 +114,59 @@ function initTripMap() {
     return marker;
   });
   
-  // Draws route lines
+  // Draw route along roads using Directions Service
   if (stops.length > 1) {
-    const path = stops.map(s => ({ lat: s.lat, lng: s.lng }));
-    
-    const route = new google.maps.Polyline({
-      path: path,
-      geodesic: true,
-      strokeColor: '#667eea',
-      strokeOpacity: 0.8,
-      strokeWeight: 3
+    const directionsService = new google.maps.DirectionsService();
+    const directionsRenderer = new google.maps.DirectionsRenderer({
+      map: map,
+      suppressMarkers: true,  // keep our custom numbered markers instead of default A/B markers
+      polylineOptions: {
+        strokeColor: '#667eea',
+        strokeOpacity: 0.8,
+        strokeWeight: 4
+      }
     });
-    
-    route.setMap(map);
+
+    // First stop is the origin, last stop is the destination
+    const origin = { lat: stops[0].lat, lng: stops[0].lng };
+    const destination = { lat: stops[stops.length - 1].lat, lng: stops[stops.length - 1].lng };
+
+    // Everything in between are waypoints
+    const waypoints = stops.slice(1, -1).map(stop => ({
+      location: { lat: stop.lat, lng: stop.lng },
+      stopover: true  // the trip actually stops here
+    }));
+
+    directionsService.route(
+      {
+        origin: origin,
+        destination: destination,
+        waypoints: waypoints,
+        travelMode: google.maps.TravelMode.DRIVING  // follow driving roads
+      },
+      function(result, status) {
+        if (status === google.maps.DirectionsStatus.OK) {
+          // Road route found, draw it on the map
+          directionsRenderer.setDirections(result);
+        } else {
+          // If directions fail (e.g. no road between locations), fall back to straight lines
+          console.warn("Directions request failed: " + status + ". Falling back to straight lines.");
+          const path = stops.map(s => ({ lat: s.lat, lng: s.lng }));
+          const polyline = new google.maps.Polyline({
+            path: path,
+            geodesic: true,
+            strokeColor: '#667eea',
+            strokeOpacity: 0.8,
+            strokeWeight: 3,
+            strokeDashArray: [10, 5]  // dashed line to show it's not a real road route
+          });
+          polyline.setMap(map);
+        }
+      }
+    );
   }
   
-  // map extends to all of the locations 
+  // Map extends to all of the locations 
   const bounds = new google.maps.LatLngBounds();
   stops.forEach(stop => bounds.extend({ lat: stop.lat, lng: stop.lng }));
   map.fitBounds(bounds);

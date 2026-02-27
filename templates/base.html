@@ -30,7 +30,11 @@
       <a class="blog-header-logo text-dark" href="{{ url_for('home') }}">Cork Photographers</a>
       <div class="mt-2">
         <a href="{{ url_for('analyze_page') }}" class="text-muted small">Photo Analysis</a> | 
-        <a href="{{ url_for('trips.trips_list') }}" class="text-muted small">Trips</a> | 
+        <a href="{{ url_for('trips.trips_list') }}" class="text-muted small">Trips</a> |
+        <a href="{{ url_for('events.events_list') }}" class="text-muted small">📅 Events</a> |
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('my_visits') }}" class="text-muted small">📍 My Visits</a> |
+                  {% endif %} 
         <a href="{{ url_for('assistant_page') }}" class="text-muted small">📸 AI Assistant</a>
       </div>
     </div>
