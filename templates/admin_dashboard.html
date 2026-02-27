@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard - Cork Photographers{% endblock %}
+
+{% block content %}
+<div class="jumbotron p-3 p-md-5 text-white rounded bg-dark">
+  <div class="col-md-10 px-0">
+    <h1 class="display-4">🔧 Admin Dashboard</h1>
+    <p class="lead my-3">Site overview and statistics.</p>
+  </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+  <div class="col-md-4 mb-3">
+    <div class="card text-white bg-primary">
+      <div class="card-body text-center">
+        <h2 class="mb-0">{{ total_users }}</h2>
+        <p class="mb-0">Registered Users</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4 mb-3">
+    <div class="card text-white bg-success">
+      <div class="card-body text-center">
+        <h2 class="mb-0">{{ total_locations }}</h2>
+        <p class="mb-0">Locations</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4 mb-3">
+    <div class="card text-white bg-info">
+      <div class="card-body text-center">
+        <h2 class="mb-0">{{ total_reviews }}</h2>
+        <p class="mb-0">Reviews</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4 mb-3">
+    <div class="card text-white bg-warning">
+      <div class="card-body text-center">
+        <h2 class="mb-0">{{ total_photos }}</h2>
+        <p class="mb-0">Photos Uploaded</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4 mb-3">
+    <div class="card text-white bg-secondary">
+      <div class="card-body text-center">
+        <h2 class="mb-0">{{ total_visits }}</h2>
+        <p class="mb-0">Location Visits Logged</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4 mb-3">
+    <div class="card bg-light">
+      <div class="card-body text-center">
+        <h2 class="mb-0">🌊 {{ coastal_count }} / 🏞️ {{ inland_count }}</h2>
+        <p class="mb-0">Coastal / Inland</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+  <!-- User Signups Chart -->
+  <div class="col-md-6 mb-3">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">📈 User Signups (Last 30 Days)</h5>
+        <canvas id="signupChart" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coastal vs Inland Pie Chart -->
+  <div class="col-md-6 mb-3">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">🗺️ Location Types</h5>
+        <canvas id="locationTypeChart" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <!-- Reviews Activity Chart -->
+  <div class="col-md-6 mb-3">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">⭐ Reviews (Last 30 Days)</h5>
+        <canvas id="reviewChart" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Photo Uploads Chart -->
+  <div class="col-md-6 mb-3">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">📸 Photo Uploads (Last 30 Days)</h5>
+        <canvas id="photoChart" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Top Locations Table -->
+{% if top_locations %}
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">🏆 Most Reviewed Locations</h5>
+    <table class="table table-sm">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Location</th>
+          <th>Reviews</th>
+          <th>Avg Rating</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for loc in top_locations %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ loc.name }}</td>
+            <td>{{ loc.review_count }}</td>
+            <td>{{ "%.1f"|format(loc.avg_rating) }} ⭐</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Admin Actions -->
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">Admin Actions</h5>
+    <a href="{{ url_for('admin_users') }}" class="btn btn-outline-primary">👥 Manage Users</a>
+  </div>
+</div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+// User Signups Line Chart
+new Chart(document.getElementById('signupChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ signup_labels|tojson }},
+    datasets: [{
+      label: 'New Users',
+      data: {{ signup_data|tojson }},
+      backgroundColor: 'rgba(0, 123, 255, 0.6)',
+      borderColor: 'rgba(0, 123, 255, 1)',
+      borderWidth: 1
+    }]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { stepSize: 1 }
+      }
+    }
+  }
+});
+
+// Coastal vs Inland Pie Chart
+new Chart(document.getElementById('locationTypeChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['🌊 Coastal', '🏞️ Inland'],
+    datasets: [{
+      data: [{{ coastal_count }}, {{ inland_count }}],
+      backgroundColor: ['rgba(23, 162, 184, 0.7)', 'rgba(40, 167, 69, 0.7)'],
+      borderColor: ['rgba(23, 162, 184, 1)', 'rgba(40, 167, 69, 1)'],
+      borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true
+  }
+});
+
+// Reviews Activity Chart
+new Chart(document.getElementById('reviewChart'), {
+  type: 'line',
+  data: {
+    labels: {{ review_labels|tojson }},
+    datasets: [{
+      label: 'Reviews',
+      data: {{ review_data|tojson }},
+      borderColor: 'rgba(255, 193, 7, 1)',
+      backgroundColor: 'rgba(255, 193, 7, 0.2)',
+      fill: true,
+      tension: 0.3
+    }]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { stepSize: 1 }
+      }
+    }
+  }
+});
+
+// Photo Uploads Chart
+new Chart(document.getElementById('photoChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ photo_labels|tojson }},
+    datasets: [{
+      label: 'Photos',
+      data: {{ photo_data|tojson }},
+      backgroundColor: 'rgba(108, 117, 125, 0.6)',
+      borderColor: 'rgba(108, 117, 125, 1)',
+      borderWidth: 1
+    }]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { stepSize: 1 }
+      }
+    }
+  }
+});
+</script>
+
+{% endblock %}

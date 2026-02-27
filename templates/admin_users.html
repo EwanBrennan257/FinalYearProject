@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Admin - Manage Users{% endblock %}
+
+{% block content %}
+<div class="jumbotron p-3 p-md-5 text-white rounded bg-dark">
+  <div class="col-md-10 px-0">
+    <h1 class="display-4">👥 Manage Users</h1>
+    <p class="lead my-3">Promote or demote user roles.</p>
+  </div>
+</div>
+
+<p><a href="{{ url_for('admin_dashboard') }}">← Back to dashboard</a></p>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Email</th>
+      <th>Role</th>
+      <th>Verified</th>
+      <th>Joined</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for user in users %}
+      <tr>
+        <td>
+          {{ user.email }}
+          {% if user.id == current_user.id %}
+            <span class="badge badge-info">You</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if user.role == "admin" %}
+            <span class="badge badge-danger">Admin</span>
+          {% else %}
+            <span class="badge badge-secondary">User</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if user.is_verified %}
+            <span class="text-success">✅</span>
+          {% else %}
+            <span class="text-muted">❌</span>
+          {% endif %}
+        </td>
+        <td>{{ user.created_at.strftime("%Y-%m-%d") if user.created_at else "N/A" }}</td>
+        <td>
+          {% if user.id != current_user.id %}
+            {% if user.role == "user" %}
+              <form method="post" action="{{ url_for('admin_promote', user_id=user.id) }}" style="display:inline;" onsubmit="return confirm('Make {{ user.email }} an admin?');">
+                <button type="submit" class="btn btn-sm btn-outline-success">Promote to Admin</button>
+              </form>
+            {% else %}
+              <form method="post" action="{{ url_for('admin_demote', user_id=user.id) }}" style="display:inline;" onsubmit="return confirm('Remove admin from {{ user.email }}?');">
+                <button type="submit" class="btn btn-sm btn-outline-warning">Demote to User</button>
+              </form>
+            {% endif %}
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<p class="text-muted">{{ users|length }} registered user{{ 's' if users|length != 1 else '' }}.</p>
+
+{% endblock %}

@@ -266,6 +266,16 @@ app.register_blueprint(init_events(db, Location))
 with app.app_context():
     db.create_all()
     print("✅ Database tables created!")
+
+    #auto promote the admin email from environment variable
+    admin_email = os.getenv("ADMIN_EMAIL")
+    if admin_email:
+        admin_email = admin_email.strip().lower()
+        admin_user = User.query.filter_by(email=admin_email).first()
+        if admin_user and admin_user.role != "admin":
+            admin_user.role = "admin"
+            db.session.commit()
+            print(f"✅ {admin_email} promoted to admin!")
     
 @login_manager.user_loader#required by flask login returns corresponding user so that same user works on later requests
 def load_user(user_id):#maintains a users session
@@ -544,6 +554,155 @@ def delete_photo(photo_id):
     
     flash("Photo deleted.", "success")
     return redirect(url_for("location_detail", slug=slug))
+
+
+# ── Admin Panel ──
+@app.route("/admin")
+@login_required
+def admin_dashboard():#admin dashboard with stats and graphs
+    if current_user.role != "admin":
+        abort(403)
+
+    #count totals for the stats cards
+    total_users = User.query.count()
+    total_locations = Location.query.count()
+    total_reviews = Review.query.count()
+    total_photos = Photo.query.count()
+    total_visits = Visit.query.count()
+
+    #get user signups per day for the last 30 days
+    thirty_days_ago = dt.datetime.utcnow() - dt.timedelta(days=30)
+
+    user_signups = (
+        db.session.query(
+            db.func.date(User.created_at).label("day"),#group by date
+            db.func.count(User.id).label("count")#count users per day
+        )
+        .filter(User.created_at >= thirty_days_ago)
+        .group_by(db.func.date(User.created_at))
+        .order_by(db.func.date(User.created_at).asc())
+        .all()
+    )
+
+    #get locations created per day for the last 30 days
+    #locations don't have created_at so we'll count total locations
+    #instead let's get reviews per day as activity metric
+    review_activity = (
+        db.session.query(
+            db.func.date(Review.created_at).label("day"),
+            db.func.count(Review.id).label("count")
+        )
+        .filter(Review.created_at >= thirty_days_ago)
+        .group_by(db.func.date(Review.created_at))
+        .order_by(db.func.date(Review.created_at).asc())
+        .all()
+    )
+
+    #get photo uploads per day for the last 30 days
+    photo_activity = (
+        db.session.query(
+            db.func.date(Photo.uploaded_at).label("day"),
+            db.func.count(Photo.id).label("count")
+        )
+        .filter(Photo.uploaded_at >= thirty_days_ago)
+        .group_by(db.func.date(Photo.uploaded_at))
+        .order_by(db.func.date(Photo.uploaded_at).asc())
+        .all()
+    )
+
+    #coastal vs inland count
+    coastal_count = Location.query.filter_by(is_coastal=True).count()
+    inland_count = Location.query.filter_by(is_coastal=False).count()
+
+    #top rated locations (locations with most reviews)
+    top_locations = (
+        db.session.query(
+            Location.name,
+            db.func.count(Review.id).label("review_count"),
+            db.func.avg(Review.rating).label("avg_rating")
+        )
+        .join(Review, Review.location_id == Location.id)
+        .group_by(Location.id, Location.name)
+        .order_by(db.func.count(Review.id).desc())
+        .limit(5)
+        .all()
+    )
+
+    #format chart data as lists for JSON
+    signup_labels = [str(row.day) for row in user_signups]
+    signup_data = [row.count for row in user_signups]
+
+    review_labels = [str(row.day) for row in review_activity]
+    review_data = [row.count for row in review_activity]
+
+    photo_labels = [str(row.day) for row in photo_activity]
+    photo_data = [row.count for row in photo_activity]
+
+    return render_template(
+        "admin_dashboard.html",
+        total_users=total_users,
+        total_locations=total_locations,
+        total_reviews=total_reviews,
+        total_photos=total_photos,
+        total_visits=total_visits,
+        coastal_count=coastal_count,
+        inland_count=inland_count,
+        top_locations=top_locations,
+        signup_labels=signup_labels,
+        signup_data=signup_data,
+        review_labels=review_labels,
+        review_data=review_data,
+        photo_labels=photo_labels,
+        photo_data=photo_data,
+    )
+
+# ── Admin Panel ──
+@app.route("/admin/users")
+@login_required
+def admin_users():#admin panel to manage users
+    if current_user.role != "admin":
+        abort(403)
+
+    users = User.query.order_by(User.created_at.desc()).all()
+    return render_template("admin_users.html", users=users)
+
+
+@app.route("/admin/users/<int:user_id>/promote", methods=["POST"])
+@login_required
+def admin_promote(user_id):#promote a user to admin
+    if current_user.role != "admin":
+        abort(403)
+
+    user = User.query.get_or_404(user_id)
+
+    if user.id == current_user.id:#can't promote yourself you're already admin
+        flash("You're already an admin.", "info")
+        return redirect(url_for("admin_users"))
+
+    user.role = "admin"
+    db.session.commit()
+
+    flash(f"{user.email} is now an admin.", "success")
+    return redirect(url_for("admin_users"))
+
+
+@app.route("/admin/users/<int:user_id>/demote", methods=["POST"])
+@login_required
+def admin_demote(user_id):#demote an admin back to a regular user
+    if current_user.role != "admin":
+        abort(403)
+
+    user = User.query.get_or_404(user_id)
+
+    if user.id == current_user.id:#can't demote yourself prevents locking yourself out
+        flash("You can't remove your own admin role.", "warning")
+        return redirect(url_for("admin_users"))
+
+    user.role = "user"
+    db.session.commit()
+
+    flash(f"{user.email} is no longer an admin.", "success")
+    return redirect(url_for("admin_users"))
 
 
 #initialize analyzer

@@ -34,6 +34,9 @@
         <a href="{{ url_for('events.events_list') }}" class="text-muted small">📅 Events</a> |
         {% if current_user.is_authenticated %}
           <a href="{{ url_for('my_visits') }}" class="text-muted small">📍 My Visits</a> |
+          {% if current_user.role == 'admin' %}
+            <a href="{{ url_for('admin_dashboard') }}" class="text-muted small">🔧 Admin</a> |
+          {% endif %}
                   {% endif %} 
         <a href="{{ url_for('assistant_page') }}" class="text-muted small">📸 AI Assistant</a>
       </div>
