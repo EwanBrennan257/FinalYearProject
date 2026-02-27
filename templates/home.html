@@ -12,6 +12,21 @@
   </div>
 </div>
 
+<!-- Search bar -->
+<div class="mb-4">
+  <form method="get" action="{{ url_for('home') }}">
+    <div class="input-group">
+      <input type="text" name="q" class="form-control" placeholder="Search locations..." value="{{ search_query or '' }}">
+      <div class="input-group-append">
+        <button class="btn btn-outline-primary" type="submit">🔍 Search</button>
+        {% if search_query %}
+          <a href="{{ url_for('home') }}" class="btn btn-outline-secondary">Clear</a>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+</div>
+
 {% for loc in locations %}
   <div class="blog-post">
     <h2 class="blog-post-title">

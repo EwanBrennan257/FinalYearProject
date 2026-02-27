@@ -376,8 +376,20 @@ def send_confirmation_email(user: User) -> bool:
 def home():
     #home page lists all locations in grid style subject to change in later iterations
     #server rendered list because it works well for my basic knowledge of Java from last year
-    locations = Location.query.order_by(Location.name).all()
-    return render_template("home.html", locations=locations)
+    #home page lists all locations, supports search
+    q = (request.args.get("q") or "").strip()#get search query from URL
+
+    if q:#if they searched for something filter locations
+        locations = (
+            Location.query
+            .filter(Location.name.ilike(f"%{q}%"))#case insensitive search on name
+            .order_by(Location.name)
+            .all()
+        )
+    else:#no search show all locations
+        locations = Location.query.order_by(Location.name).all()
+
+    return render_template("home.html", locations=locations, search_query=q)
 
 @app.route("/add", methods=["GET","POST"]
 )
