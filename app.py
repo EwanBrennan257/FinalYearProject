@@ -896,6 +896,117 @@ def resend_confirmation():#this function handles resending confirmation emails
     #show resend form
     return render_template("resend_confirmation.html", message=message)
 
+#password reset feature
+#https://flask.palletsprojects.com/en/stable/patterns/flashing/
+#https://www.freecodecamp.org/news/setup-email-verification-in-flask-app/
+
+#generates a password reset token using the same serializer as email confirmation
+def generate_reset_token(email: str) -> str:
+    return _confirm_serializer().dumps(email, salt="password-reset-salt")
+
+#validates the password reset token and extracts the email
+def confirm_reset_token(token: str) -> str | None:
+    try:
+        return _confirm_serializer().loads(
+            token,
+            salt="password-reset-salt",
+            max_age=3600,#token expires in 1 hour
+        )
+    except (SignatureExpired, BadSignature):
+        return None
+
+#sends password reset email to user
+def send_reset_email(user: User) -> bool:
+    token = generate_reset_token(user.email)#create secure token
+    reset_url = url_for("reset_password", token=token, _external=True)#build reset link
+    subject = "Reset your password - Cork Photographers"
+    body = (
+        f"Hi,\n\n"
+        f"You requested a password reset for your Cork Photographers account.\n\n"
+        f"Click the link below to set a new password:\n"
+        f"{reset_url}\n\n"
+        f"This link expires in 1 hour.\n\n"
+        f"If you didn't request this, you can safely ignore this email."
+    )
+
+    if not _mail_is_configured():#fallback if email isn't configured
+        print("\n[Email not configured] Password reset link for", user.email)
+        print(reset_url)
+        print()
+        return False
+
+    try:
+        import socket
+        old_timeout = socket.getdefaulttimeout()
+        socket.setdefaulttimeout(10)
+        msg = Message(subject=subject, recipients=[user.email], body=body)
+        mail.send(msg)
+        socket.setdefaulttimeout(old_timeout)
+        return True
+    except Exception as e:
+        print("\n[Email error] Could not send reset email:", str(e))
+        print("Reset link (for debugging):", reset_url)
+        print()
+    return False
+
+#route for forgot password page where user enters their email
+@app.route("/auth/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    message = None
+
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+
+        if not email:
+            message = "Please enter your email address."
+        else:
+            user = User.query.filter_by(email=email).first()
+            #only send if user exists and is verified
+            if user and user.is_verified:
+                send_reset_email(user)
+
+            #always show the same message for security so attackers can't tell if email exists
+            flash(
+                "If an account exists with that email, we've sent a password reset link.",
+                "info",
+            )
+            return redirect(url_for("login"))
+
+    return render_template("forgot_password.html", message=message)
+
+#route for the actual password reset page where user enters new password
+@app.route("/auth/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    email = confirm_reset_token(token)#decrypt token to get email
+    if not email:#if token is invalid or expired
+        flash("That reset link is invalid or has expired. Please request a new one.", "warning")
+        return redirect(url_for("forgot_password"))
+
+    user = User.query.filter_by(email=email).first()
+    if not user:#if user doesn't exist
+        flash("Account not found.", "warning")
+        return redirect(url_for("register"))
+
+    message = None
+
+    if request.method == "POST":
+        password = request.form.get("password") or ""
+        confirm = request.form.get("confirm_password") or ""
+
+        if not password:
+            message = "Please enter a new password."
+        elif len(password) < 6:
+            message = "Password must be at least 6 characters."
+        elif password != confirm:
+            message = "Passwords do not match."
+        else:
+            user.set_password(password)#hash and save new password
+            db.session.commit()
+            flash("Your password has been reset. You can now log in.", "success")
+            return redirect(url_for("login"))
+
+    return render_template("reset_password.html", message=message, token=token)
+
 @app.route("/l/<slug>/review", methods=["POST"])#for adding reviews
 @login_required#must be logged in
 def add_review(slug):#function handles adding reviews

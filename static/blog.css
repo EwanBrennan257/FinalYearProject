@@ -1,71 +1,444 @@
-html {
-  font-size: 16px;
-}
+/* =====================================================
+   Cork Photographers — Snap-inspired Photography Theme
+   ===================================================== */
 
+/* ── Base ── */
 body {
-  font-family: Georgia, "Times New Roman", Times, serif;
-  color: #212529;
+  font-family: 'Open Sans', sans-serif;
+  line-height: 1.7;
+  color: #000;
+  font-weight: 400;
+  font-size: 1rem;
+  background: #F5EEDC;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: "Playfair Display", Georgia, "Times New Roman", serif;
+html {
+  background: #F5EEDC;
 }
 
-.blog-header {
-  line-height: 1;
-  border-bottom: 1px solid #e5e5e5;
+::selection {
+  background: #DD4A48;
+  color: #fff;
 }
 
-.blog-header-logo {
-  font-family: "Playfair Display", Georgia, "Times New Roman", serif;
-  font-size: 2.25rem;
+/* ── Typography ── */
+h1, h2, h3, h4, h5,
+.h1, .h2, .h3, .h4, .h5,
+.blog-header-logo,
+.display-4 {
+  font-family: 'Playfair Display', serif;
+  color: #000;
 }
 
-.blog-header-logo:hover {
+a {
+  color: #DD4A48;
+  transition: .3s all ease;
+}
+
+a:hover {
+  color: #b33230;
   text-decoration: none;
 }
 
+/* ── Header ── */
+.blog-header {
+  border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+.blog-header-logo {
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  color: #000;
+}
+
+.blog-header-logo:hover {
+  color: #DD4A48;
+  text-decoration: none;
+}
+
+/* ── Navigation ── */
 .nav-scroller {
+  border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+.nav-scroller .nav-link,
+.nav-scroller .p-2 {
+  color: #000;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-left: 10px;
   position: relative;
-  z-index: 2;
-  height: 2.75rem;
-  overflow-y: hidden;
-  border-bottom: 1px solid #e5e5e5;
+  transition: .3s all ease;
 }
 
-.nav-scroller .nav {
-  display: flex;
-  flex-wrap: nowrap;
-  padding-bottom: 1rem;
-  margin-top: -1px;
-  overflow-x: auto;
-  white-space: nowrap;
-  -webkit-overflow-scrolling: touch;
+.nav-scroller .nav-link:hover,
+.nav-scroller .p-2:hover {
+  color: #DD4A48;
+  text-decoration: none;
 }
 
-.blog-main {
-  font-size: 1.05rem;
-  line-height: 1.6;
+.nav-scroller .text-muted {
+  color: #000 !important;
 }
 
+.nav-scroller .text-muted:hover {
+  color: #DD4A48 !important;
+}
+
+/* Header small links */
+.blog-header .text-muted.small {
+  color: #555 !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+}
+
+.blog-header .text-muted.small:hover {
+  color: #DD4A48 !important;
+  text-decoration: none;
+}
+
+/* ── Buttons ── */
+.btn {
+  border-radius: 10px;
+  transition: .3s all ease;
+  font-weight: 600;
+}
+
+.btn-primary {
+  background-color: #DD4A48;
+  border-color: #DD4A48;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+  background-color: #b33230;
+  border-color: #b33230;
+  box-shadow: none;
+}
+
+.btn-outline-primary {
+  color: #DD4A48;
+  border-color: #DD4A48;
+}
+
+.btn-outline-primary:hover {
+  background-color: #DD4A48;
+  border-color: #DD4A48;
+  color: #fff;
+}
+
+.btn-outline-secondary {
+  color: #000;
+  border-color: #000;
+}
+
+.btn-outline-secondary:hover {
+  background-color: #000;
+  border-color: #000;
+  color: #fff;
+}
+
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Jumbotron / Hero ── */
+.jumbotron {
+  background: #000 !important;
+  border-radius: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.jumbotron .display-4 {
+  color: #fff;
+  font-weight: 900;
+}
+
+.jumbotron .lead {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ── Cards ── */
+.card {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+  transition: .3s all ease;
+  background: #fff;
+}
+
+.card:hover {
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.card-title {
+  font-family: 'Playfair Display', serif;
+}
+
+/* ── Blog Posts (Location Cards) ── */
 .blog-post {
-  margin-bottom: 2.5rem;
+  background: #fff;
+  padding: 25px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+  transition: .3s all ease;
+}
+
+.blog-post:hover {
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
 }
 
 .blog-post-title {
-  margin-bottom: .25rem;
-  font-size: 2rem;
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+}
+
+.blog-post-title a {
+  color: #000;
+}
+
+.blog-post-title a:hover {
+  color: #DD4A48;
 }
 
 .blog-post-meta {
-  margin-bottom: 1.25rem;
-  color: #6c757d;
+  color: rgba(0, 0, 0, 0.5);
+  font-size: 0.85rem;
 }
 
+/* ── Forms ── */
+.form-control {
+  border: none;
+  height: 50px;
+  color: #000;
+  background: rgba(191, 146, 112, 0.2);
+  border-radius: 10px;
+  font-size: 0.95rem;
+}
+
+.form-control:focus {
+  color: #000;
+  background: rgba(191, 146, 112, 0.3);
+  box-shadow: 0 0 0 3px rgba(221, 74, 72, 0.2);
+  outline: none;
+}
+
+textarea.form-control {
+  height: auto;
+}
+
+.form-control::placeholder {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+/* ── Tables ── */
+.table {
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.table thead th {
+  background: #000;
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: rgba(191, 146, 112, 0.08);
+}
+
+/* ── Alerts ── */
+.alert {
+  border-radius: 10px;
+  border: none;
+}
+
+.alert-info {
+  background: rgba(191, 146, 112, 0.2);
+  color: #000;
+}
+
+.alert-success {
+  background: rgba(40, 167, 69, 0.15);
+  color: #155724;
+}
+
+.alert-warning {
+  background: rgba(221, 74, 72, 0.15);
+  color: #856404;
+}
+
+/* ── Badges ── */
+.badge {
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.badge-info {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.badge-success {
+  background: #28a745;
+}
+
+/* ── List Groups ── */
+.list-group-item {
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+  transition: .3s all ease;
+}
+
+.list-group-item:hover {
+  background: rgba(191, 146, 112, 0.08);
+}
+
+/* ── Search Bar ── */
+.input-group .form-control {
+  border-radius: 10px 0 0 10px;
+}
+
+.input-group-append .btn {
+  border-radius: 0 10px 10px 0;
+}
+
+/* ── Photos / Images ── */
+.img-fluid {
+  border-radius: 8px;
+  transition: .3s all ease;
+}
+
+.img-fluid:hover {
+  transform: scale(1.02);
+}
+
+/* ── Footer ── */
 .blog-footer {
-  padding: 2.5rem 0;
-  color: #6c757d;
-  text-align: center;
-  background-color: #f9f9f9;
-  border-top: .05rem solid #e5e5e5;
+  background: #333;
+  color: #999;
+  padding: 40px 0;
+  margin-top: 40px;
+}
+
+.blog-footer a {
+  color: #DD4A48;
+}
+
+.blog-footer a:hover {
+  color: #fff;
+}
+
+.blog-footer p {
+  color: #999;
+}
+
+/* ── Admin Dashboard Cards ── */
+.card.text-white {
+  border: none;
+  border-radius: 10px;
+}
+
+.card.bg-primary {
+  background: #DD4A48 !important;
+}
+
+.card.bg-dark,
+.card.text-white.bg-dark {
+  background: #000 !important;
+}
+
+/* ── Stars (Reviews) ── */
+.text-warning {
+  color: #DD4A48 !important;
+}
+
+/* ── Sidebar ── */
+.blog-sidebar .card {
+  border: none;
+}
+
+/* ── Miscellaneous ── */
+hr {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.text-muted {
+  color: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* ── Pagination ── */
+.page-link {
+  color: #DD4A48;
+  border-radius: 50%;
+}
+
+.page-link:hover {
+  background: #DD4A48;
+  color: #fff;
+  border-color: #DD4A48;
+}
+
+.page-item.active .page-link {
+  background: #DD4A48;
+  border-color: #DD4A48;
+}
+
+/* ── Map ── */
+#location-map,
+#trip-map {
+  border-radius: 10px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .display-4 {
+    font-size: 2rem;
+  }
+
+  .blog-post {
+    padding: 18px;
+  }
+
+  .jumbotron {
+    padding: 2rem !important;
+  }
+}
+
+/* ── Nav Links ── */
+.nav-link-custom {
+  color: #000;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 8px 12px;
+  transition: .3s all ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.nav-link-custom:hover {
+  color: #DD4A48;
+  text-decoration: none;
 }

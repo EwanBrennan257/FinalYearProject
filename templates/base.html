@@ -4,63 +4,63 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-  <title>{% block title %}Cork Photographers{% endblock %}</title>
+  <title>{% block title %}Capture Cork{% endblock %}</title>
 
-  <!-- bootstrap 4 CSS -->
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Open+Sans:wght@300;400;600;700&display=swap">
+
+  <!-- Bootstrap 4 CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css">
 
-  
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Playfair+Display:700,900">
-
-
+  <!-- Custom CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='blog.css') }}">
 </head>
 
 <body>
   <div class="container">
 
-    <!-- Header -->
-    <header class="blog-header py-3">
-  <div class="row flex-nowrap justify-content-between align-items-center">
-    <div class="col-3 pt-1">
-      <a class="text-muted" href="{{ url_for('home') }}">Home</a>
+    <!-- Header - Cork Photographers centered -->
+    <div class="text-center py-3">
+      <a class="blog-header-logo" href="{{ url_for('home') }}">Capture Cork</a>
     </div>
 
-    <div class="col-6 text-center">
-      <a class="blog-header-logo text-dark" href="{{ url_for('home') }}">Cork Photographers</a>
-      <div class="mt-2">
-        <a href="{{ url_for('analyze_page') }}" class="text-muted small">Photo Analysis</a> | 
-        <a href="{{ url_for('trips.trips_list') }}" class="text-muted small">Trips</a> |
-        <a href="{{ url_for('events.events_list') }}" class="text-muted small">📅 Events</a> |
-        {% if current_user.is_authenticated %}
-          <a href="{{ url_for('my_visits') }}" class="text-muted small">📍 My Visits</a> |
-          {% if current_user.role == 'admin' %}
-            <a href="{{ url_for('admin_dashboard') }}" class="text-muted small">🔧 Admin</a> |
+    <!-- Navigation bar -->
+    <div class="py-2 mb-3" style="border-top: 2px solid rgba(0,0,0,0.1); border-bottom: 2px solid rgba(0,0,0,0.1);">
+      <div class="d-flex justify-content-between align-items-center">
+
+        <!-- Left - Locations -->
+        <div>
+          <a class="nav-link-custom" href="{{ url_for('home') }}"> Locations</a>
+          {% if current_user.is_authenticated %}
+            <a class="nav-link-custom" href="{{ url_for('add_location') }}">+ Add Location</a>
           {% endif %}
-                  {% endif %} 
-        <a href="{{ url_for('assistant_page') }}" class="text-muted small">📸 AI Assistant</a>
+        </div>
+
+        <!-- Center links -->
+        <div>
+          <a class="nav-link-custom" href="{{ url_for('analyze_page') }}"> Analysis</a>
+          <a class="nav-link-custom" href="{{ url_for('trips.trips_list') }}"> Trips</a>
+          <a class="nav-link-custom" href="{{ url_for('events.events_list') }}"> Events</a>
+          {% if current_user.is_authenticated %}
+            <a class="nav-link-custom" href="{{ url_for('my_visits') }}"> My Visits</a>
+          {% endif %}
+          <a class="nav-link-custom" href="{{ url_for('assistant_page') }}"> Assistant</a>
+          {% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <a class="nav-link-custom" href="{{ url_for('admin_dashboard') }}"> Admin</a>
+          {% endif %}
+        </div>
+
+        <!-- Right - Login/Logout -->
+        <div>
+          {% if current_user.is_authenticated %}
+            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('logout') }}">Log out</a>
+          {% else %}
+            <a class="btn btn-sm btn-outline-secondary mr-2" href="{{ url_for('login') }}">Log in</a>
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('register') }}">Register</a>
+          {% endif %}
+        </div>
+
       </div>
-    </div>
-
-    <div class="col-3 d-flex justify-content-end align-items-center">
-      {% if current_user.is_authenticated %}
-        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('logout') }}">Log out</a>
-      {% else %}
-        <a class="btn btn-sm btn-outline-secondary mr-2" href="{{ url_for('login') }}">Log in</a>
-        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('register') }}">Register</a>
-      {% endif %}
-    </div>
-  </div>
-</header>
-
-    <!-- Nav scroller -->
-    <div class="nav-scroller py-1 mb-3">
-      <nav class="nav d-flex justify-content-between">
-        <a class="p-2 text-muted" href="{{ url_for('home') }}">Locations</a>
-        {% if current_user.is_authenticated %}
-          <a class="p-2 text-muted" href="{{ url_for('add_location') }}">Add location</a>
-        {% endif %}
-      </nav>
     </div>
 
     <!-- Flash messages -->
@@ -81,30 +81,24 @@
       {% endif %}
     {% endwith %}
 
+    <!-- Main content - full width -->
     <div class="row">
-
-      <!-- Main -->
-      <main role="main" class="col-md-8 blog-main">
+      <main role="main" class="col-md-12 blog-main">
         {% block content %}{% endblock %}
       </main>
+    </div>
 
-      <!-- Sidebar -->
-      <aside class="col-md-4 blog-sidebar">
-        {% block sidebar %}
-        <!-- Photo gallery will appear here on location pages -->
-        {% endblock %}
-      </aside>
-
-    </div><!-- /.row -->
+    <!-- Sidebar - only used by location page -->
+    {% block sidebar %}{% endblock %}
 
   </div><!-- /.container -->
 
   <footer class="blog-footer">
-    <p class="mb-1">Cork Photographers</p>
+    <p class="mb-1">Capture Cork</p>
     <p><a href="{{ url_for('home') }}">Back to home</a></p>
   </footer>
 
-  <!-- Bootstrap JS  -->
+  <!-- Bootstrap JS -->
   <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"></script>

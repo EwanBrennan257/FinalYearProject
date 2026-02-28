@@ -27,26 +27,32 @@
   </form>
 </div>
 
-{% for loc in locations %}
-  <div class="blog-post">
-    <h2 class="blog-post-title">
-      <a href="{{ url_for('location_detail', slug=loc.slug) }}">{{ loc.name }}</a>
-    </h2>
+<div class="row">
+  {% for loc in locations %}
+    <div class="col-md-4 mb-4">
+      <div class="card h-100">
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title">
+            <a href="{{ url_for('location_detail', slug=loc.slug) }}">{{ loc.name }}</a>
+          </h5>
 
-    <p class="blog-post-meta">
-      Lat {{ "%.5f"|format(loc.lat) }}, Lon {{ "%.5f"|format(loc.lon) }}
-    </p>
+          <p class="blog-post-meta">
+            Lat {{ "%.5f"|format(loc.lat) }}, Lon {{ "%.5f"|format(loc.lon) }}
+          </p>
 
-    {% if loc.notes %}
-      <p>{{ loc.notes }}</p>
-    {% else %}
-      <p class="text-muted">No notes yet.</p>
-    {% endif %}
+          {% if loc.notes %}
+            <p class="small">{{ loc.notes }}</p>
+          {% else %}
+            <p class="text-muted small">No notes yet.</p>
+          {% endif %}
 
-    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('location_detail', slug=loc.slug) }}">
-      View details
-    </a>
-  </div>
-{% endfor %}
+          <a class="btn btn-sm btn-outline-primary mt-auto" href="{{ url_for('location_detail', slug=loc.slug) }}">
+            View details
+          </a>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
 
 {% endblock %}

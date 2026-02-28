@@ -5,6 +5,12 @@
 <div class="row">
   <div class="col-md-6">
     <h2>Add a Location</h2>
+
+    <div class="alert alert-info" role="alert">
+      <strong> Note:</strong> This service currently only covers photography locations in <strong>Cork, Ireland</strong>. 
+      Please make sure the location you add is within the Cork area.
+    </div>
+
     <form method="post" id="locationForm">
       <div class="form-group">
         <label for="name">Name</label>
@@ -46,7 +52,7 @@
   </div>
   
   <div class="col-md-6">
-    <h2>📍 Click on Map</h2>
+    <h2> Click on Map</h2>
     <p class="text-muted">Click anywhere on the map to select coordinates</p>
     <div id="map-picker" style="height: 500px; width: 100%; border-radius: 8px; border: 2px solid #dee2e6;"></div>
     <p class="text-muted mt-2" id="map-instructions">
@@ -94,7 +100,7 @@ function placeMarker(location) {
   
   // update instructions
   document.getElementById('map-instructions').innerHTML = 
-    `<small>✅ Location selected: ${location.lat().toFixed(6)}, ${location.lng().toFixed(6)}</small>`;
+    `<small> Location selected: ${location.lat().toFixed(6)}, ${location.lng().toFixed(6)}</small>`;
 }
 </script>
 
