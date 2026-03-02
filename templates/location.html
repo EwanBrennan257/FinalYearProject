@@ -9,6 +9,17 @@
     <div class="blog-post">
       <h1 class="blog-post-title">{{ location.name }}</h1>
 
+      <!-- Admin: Delete location -->
+      {% if current_user.is_authenticated and current_user.role == 'admin' %}
+        <div class="mb-3">
+          <form method="post" action="{{ url_for('delete_location', slug=location.slug) }}" 
+                style="display: inline;"
+                onsubmit="return confirm(' Are you sure you want to delete {{ location.name }}?\n\nThis will permanently remove:\n- The location\n- All reviews\n- All photos\n- All visit records\n\nThis cannot be undone!');">
+            <button type="submit" class="btn btn-sm btn-outline-danger"> Delete Location</button>
+          </form>
+        </div>
+      {% endif %}
+
       {% if location.notes %}
         <p>{{ location.notes }}</p>
       {% endif %}

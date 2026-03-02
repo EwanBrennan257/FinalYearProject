@@ -20,50 +20,62 @@
 
 <hr>
 
-<h3>Add a location</h3>
-<form method="post" action="{{ url_for('trips.trip_add_location', trip_id=trip.id) }}">
-  <select name="location_id" required>
-    <option value="">-- select a location --</option>
-    {% for loc in locations %}
-      <option value="{{ loc.id }}">{{ loc.name }}</option>
-    {% endfor %}
-  </select>
-  <button type="submit">Add</button>
-</form>
+<!-- Add location card -->
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">📍 Add a location</h5>
+    <form method="post" action="{{ url_for('trips.trip_add_location', trip_id=trip.id) }}" class="form-inline">
+      <div class="form-group mr-2 flex-grow-1">
+        <select name="location_id" required class="form-control w-100">
+          <option value="">-- select a location --</option>
+          {% for loc in locations %}
+            <option value="{{ loc.id }}">{{ loc.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">+ Add</button>
+    </form>
+  </div>
+</div>
 
-<hr>
-
-<h3>Trip order</h3>
+<!-- Trip order -->
+<h4>🗺️ Trip Order</h4>
 
 {% if stops %}
-  <ol>
-    {% for s in stops %}
-      <li style="margin-bottom: .75rem;">
-        <a href="{{ url_for('location_detail', slug=s.location.slug) }}">{{ s.location.name }}</a>
-
-        <div style="display:inline-block; margin-left: .75rem;">
+  {% for s in stops %}
+    <div class="card mb-2">
+      <div class="card-body d-flex justify-content-between align-items-center py-2 px-3">
+        <div>
+          <strong class="mr-2">{{ loop.index }}.</strong>
+          <a href="{{ url_for('location_detail', slug=s.location.slug) }}">{{ s.location.name }}</a>
+        </div>
+        <div>
           <form method="post" action="{{ url_for('trips.trip_move_stop', trip_id=trip.id, stop_id=s.id) }}" style="display:inline;">
             <input type="hidden" name="direction" value="up">
-            <button type="submit">↑</button>
+            <button type="submit" class="btn btn-sm btn-outline-secondary" title="Move up">↑</button>
           </form>
 
           <form method="post" action="{{ url_for('trips.trip_move_stop', trip_id=trip.id, stop_id=s.id) }}" style="display:inline;">
             <input type="hidden" name="direction" value="down">
-            <button type="submit">↓</button>
+            <button type="submit" class="btn btn-sm btn-outline-secondary" title="Move down">↓</button>
           </form>
 
-          <form method="post" action="{{ url_for('trips.trip_remove_stop', trip_id=trip.id, stop_id=s.id) }}" style="display:inline;">
-            <button type="submit">Remove</button>
+          <form method="post" action="{{ url_for('trips.trip_remove_stop', trip_id=trip.id, stop_id=s.id) }}" style="display:inline;" onsubmit="return confirm('Remove this stop?');">
+            <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
           </form>
         </div>
-      </li>
-    {% endfor %}
-  </ol>
+      </div>
+    </div>
+  {% endfor %}
 {% else %}
-  <p class="muted">No locations added yet.</p>
+  <div class="alert alert-info">
+    <p class="mb-0">No locations added yet. Use the form above to add stops to your trip.</p>
+  </div>
 {% endif %}
 
-<p><a href="{{ url_for('trips.trips_list') }}">Back to trips</a></p>
+<div class="mt-4">
+  <a href="{{ url_for('trips.trips_list') }}" class="btn btn-outline-secondary">← Back to trips</a>
+</div>
 
 <!--https://www.youtube.com/watch?v=HChq5_7yTGk-->
 <!-- https://developers.google.com/maps/documentation/javascript/adding-a-google-map-->

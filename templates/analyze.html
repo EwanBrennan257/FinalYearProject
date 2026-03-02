@@ -21,15 +21,18 @@
         
         <form method="post" action="{{ url_for('analyze_upload') }}" enctype="multipart/form-data">
           <div class="form-group">
-            <label for="photoInput">Choose a photo to analyze:</label>
-            <input 
-              type="file" 
-              class="form-control-file" 
-              id="photoInput" 
-              name="photo" 
-              accept="image/*" 
-              required
-              onchange="previewImage(event)">
+            <label for="photoInput" class="font-weight-bold">Choose a photo to analyze:</label>
+            <div class="custom-file mb-2">
+              <input 
+                type="file" 
+                class="custom-file-input" 
+                id="photoInput" 
+                name="photo" 
+                accept="image/*" 
+                required
+                onchange="previewImage(event); updateFileName(this);">
+              <label class="custom-file-label" for="photoInput" id="fileLabel">Browse...</label>
+            </div>
             <small class="form-text text-muted">Supported: JPG, PNG, GIF, WEBP (Max 5MB)</small>
           </div>
           
@@ -126,6 +129,13 @@ function previewImage(event) {
       previewContainer.style.display = 'block';
     };
     reader.readAsDataURL(file);
+  }
+}
+
+function updateFileName(input) {
+  const label = document.getElementById('fileLabel');
+  if (input.files && input.files[0]) {
+    label.textContent = input.files[0].name;
   }
 }
 </script>

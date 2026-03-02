@@ -555,6 +555,43 @@ def delete_photo(photo_id):
     flash("Photo deleted.", "success")
     return redirect(url_for("location_detail", slug=slug))
 
+# ── Delete location (admin only) ──
+@app.route("/l/<slug>/delete", methods=["POST"])
+@login_required
+def delete_location(slug):
+    #only admins can delete locations
+    if current_user.role != "admin":
+        abort(403)
+
+    loc = Location.query.filter_by(slug=slug).first_or_404()
+
+    #delete all photos from Cloudinary before removing from database
+    for photo in loc.photos:
+        try:
+            cloudinary.uploader.destroy(photo.cloudinary_public_id)
+        except Exception as e:
+            print(f"Failed to delete photo from Cloudinary: {e}")
+
+    #manually delete trip stops that reference this location
+    #these don't have cascade on the Location model so we must clean them up
+    db.session.execute(
+        db.text("DELETE FROM trip_stop WHERE location_id = :lid"),
+        {"lid": loc.id}
+    )
+
+    #manually delete event stops that reference this location
+    db.session.execute(
+        db.text("DELETE FROM event_stop WHERE location_id = :lid"),
+        {"lid": loc.id}
+    )
+
+    #delete the location (cascades will remove reviews, photos, visits)
+    db.session.delete(loc)
+    db.session.commit()
+
+    flash(f"Location '{loc.name}' and all its data has been permanently deleted.", "success")
+    return redirect(url_for("home"))
+
 
 # ── Admin Panel ──
 @app.route("/admin")
