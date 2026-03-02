@@ -401,6 +401,16 @@ def home():
 
     return render_template("home.html", locations=locations, search_query=q)
 
+# ── 404 Error Handler ──
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template("404.html"), 404
+
+# ── About Page ──
+@app.route("/about")
+def about():
+    return render_template("about.html")
+
 @app.route("/add", methods=["GET","POST"]
 )
 @login_required

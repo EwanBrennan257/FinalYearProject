@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}About - Capture Cork{% endblock %}
+
+{% block content %}
+<div class="jumbotron p-3 p-md-5 text-white rounded bg-dark">
+  <div class="col-md-10 px-0">
+    <h1 class="display-4 font-italic">About Capture Cork</h1>
+    <p class="lead my-3">
+      Your guide to the best photography spots in Cork, Ireland.
+    </p>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-8">
+    <div class="card mb-4">
+      <div class="card-body">
+        <h4 class="card-title">📸 What is Capture Cork?</h4>
+        <p>
+          Capture Cork is a web application designed to help photographers discover, share, and plan visits 
+          to photography locations around Cork, Ireland. Whether you're a beginner or a professional, 
+          Capture Cork gives you the tools to find the perfect spot for your next shoot.
+        </p>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-body">
+        <h4 class="card-title">🌟 Features</h4>
+        <ul class="mb-0">
+          <li><strong> Locations:</strong> Browse and add photography locations around Cork with map integration</li>
+          <li><strong> Sun Times:</strong> See sunrise and sunset times for each location</li>
+          <li><strong> Tide Data:</strong> Check tide times for coastal locations</li>
+          <li><strong> Weather:</strong> Real-time weather forecasts for every spot</li>
+          <li><strong> Photo Analysis:</strong> Upload photos to analyse dominant colours</li>
+          <li><strong> Trips:</strong> Plan multi-location photography trips with route maps</li>
+          <li><strong> Events:</strong> Create and join photography events</li>
+          <li><strong> Visits:</strong> Track which locations you've been to</li>
+          <li><strong> Reviews:</strong> Rate and review locations to help other photographers</li>
+          <li><strong> AI Assistant:</strong> Get photography advice and location suggestions</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-body">
+        <h4 class="card-title"> About This Project</h4>
+        <p>
+          Capture Cork was built as a Final Year Project. It uses Flask, PostgreSQL, Google Maps, 
+          and various APIs to provide real-time data for photographers exploring Cork.
+        </p>
+        <p class="mb-0 text-muted">
+          <strong>Note:</strong> This service currently only covers photography locations in <strong>Cork, Ireland</strong>.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">🛠️ Built With</h5>
+        <ul class="list-unstyled mb-0">
+          <li> Python / Flask</li>
+          <li> PostgreSQL</li>
+          <li> Google Maps API</li>
+          <li> Cloudinary</li>
+          <li> Bootstrap 4</li>
+          <li> Groq AI</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title"> Get Started</h5>
+        <p>Create a free account to start adding locations, leaving reviews, and planning trips.</p>
+        {% if not current_user.is_authenticated %}
+          <a href="{{ url_for('register') }}" class="btn btn-primary btn-block">Register</a>
+          <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-block">Log In</a>
+        {% else %}
+          <a href="{{ url_for('home') }}" class="btn btn-primary btn-block"> Explore Locations</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

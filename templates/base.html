@@ -45,6 +45,7 @@
             <a class="nav-link-custom" href="{{ url_for('my_visits') }}"> My Visits</a>
           {% endif %}
           <a class="nav-link-custom" href="{{ url_for('assistant_page') }}"> Assistant</a>
+          <a class="nav-link-custom" href="{{ url_for('about') }}"> About</a>
           {% if current_user.is_authenticated and current_user.role == 'admin' %}
             <a class="nav-link-custom" href="{{ url_for('admin_dashboard') }}"> Admin</a>
           {% endif %}
