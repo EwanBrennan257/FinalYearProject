@@ -602,6 +602,30 @@ def delete_location(slug):
     flash(f"Location '{loc.name}' and all its data has been permanently deleted.", "success")
     return redirect(url_for("home"))
 
+# ── Edit location notes (admin only) ──
+@app.route("/l/<slug>/edit-notes", methods=["GET", "POST"])
+@login_required
+def edit_location_notes(slug):
+    #only admins can edit location notes
+    if current_user.role != "admin":
+        abort(403)
+
+    loc = Location.query.filter_by(slug=slug).first_or_404()
+
+    if request.method == "POST":
+        notes = (request.form.get("notes") or "").strip()
+
+        if len(notes) > 400:#match the 400 char limit from the model
+            flash("Notes are too long (max 400 characters).", "warning")
+            return redirect(url_for("edit_location_notes", slug=slug))
+
+        loc.notes = notes if notes else None#save empty as None
+        db.session.commit()
+
+        flash(f"Notes updated for '{loc.name}'.", "success")
+        return redirect(url_for("location_detail", slug=slug))
+
+    return render_template("edit_location_notes.html", location=loc)
 
 # ── Admin Panel ──
 @app.route("/admin")

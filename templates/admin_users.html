@@ -4,7 +4,7 @@
 {% block content %}
 <div class="jumbotron p-3 p-md-5 text-white rounded bg-dark">
   <div class="col-md-10 px-0">
-    <h1 class="display-4">👥 Manage Users</h1>
+    <h1 class="display-4"> Manage Users</h1>
     <p class="lead my-3">Promote or demote user roles.</p>
   </div>
 </div>
@@ -39,9 +39,9 @@
         </td>
         <td>
           {% if user.is_verified %}
-            <span class="text-success">✅</span>
+            <span class="text-success"></span>
           {% else %}
-            <span class="text-muted">❌</span>
+            <span class="text-muted"></span>
           {% endif %}
         </td>
         <td>{{ user.created_at.strftime("%Y-%m-%d") if user.created_at else "N/A" }}</td>
