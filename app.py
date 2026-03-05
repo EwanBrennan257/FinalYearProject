@@ -406,7 +406,7 @@ def home():
 def page_not_found(e):
     return render_template("404.html"), 404
 
-# ── 413 Error Handler ──
+#413 Error Handler
 @app.errorhandler(413)
 def file_too_large(e):
     flash("File is too large. Cloudinary only supports uploads up to 5MB. Please choose a smaller image.", "warning")
@@ -463,7 +463,7 @@ def location_detail(slug):
         .all()#get them all
     )
 
-    # average rating (None if no reviews)
+    #average rating (None if no reviews)
     avg_rating = (
         db.session.query(func.avg(Review.rating))
         .filter(Review.location_id == loc.id)
