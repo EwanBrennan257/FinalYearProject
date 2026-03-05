@@ -46,20 +46,23 @@
         </td>
         <td>{{ user.created_at.strftime("%Y-%m-%d") if user.created_at else "N/A" }}</td>
         <td>
-          {% if user.id != current_user.id %}
-            {% if user.role == "user" %}
-              <form method="post" action="{{ url_for('admin_promote', user_id=user.id) }}" style="display:inline;" onsubmit="return confirm('Make {{ user.email }} an admin?');">
-                <button type="submit" class="btn btn-sm btn-outline-success">Promote to Admin</button>
-              </form>
-            {% else %}
-              <form method="post" action="{{ url_for('admin_demote', user_id=user.id) }}" style="display:inline;" onsubmit="return confirm('Remove admin from {{ user.email }}?');">
-                <button type="submit" class="btn btn-sm btn-outline-warning">Demote to User</button>
-              </form>
-            {% endif %}
-          {% else %}
-            <span class="text-muted">—</span>
-          {% endif %}
-        </td>
+  {% if user.id != current_user.id %}
+    {% if user.role == "user" %}
+      <form method="post" action="{{ url_for('admin_promote', user_id=user.id) }}" style="display:inline;" onsubmit="return confirm('Make {{ user.email }} an admin?');">
+        <button type="submit" class="btn btn-sm btn-outline-success">Promote to Admin</button>
+      </form>
+    {% else %}
+      <form method="post" action="{{ url_for('admin_demote', user_id=user.id) }}" style="display:inline;" onsubmit="return confirm('Remove admin from {{ user.email }}?');">
+        <button type="submit" class="btn btn-sm btn-outline-warning">Demote to User</button>
+      </form>
+    {% endif %}
+    <form method="post" action="{{ url_for('admin_delete_user', user_id=user.id) }}" style="display:inline;" onsubmit="return confirm('⚠️ Are you sure you want to DELETE {{ user.email }}?\n\nThis will permanently remove:\n- Their account\n- All their reviews\n- All their photos\n- All their visit records\n\nThis cannot be undone!');">
+      <button type="submit" class="btn btn-sm btn-outline-danger ml-1">Delete</button>
+    </form>
+  {% else %}
+    <span class="text-muted">—</span>
+  {% endif %}
+</td>
       </tr>
     {% endfor %}
   </tbody>

@@ -781,6 +781,32 @@ def admin_demote(user_id):#demote an admin back to a regular user
     flash(f"{user.email} is no longer an admin.", "success")
     return redirect(url_for("admin_users"))
 
+@app.route("/admin/users/<int:user_id>/delete", methods=["POST"])
+@login_required
+def admin_delete_user(user_id):#admin can delete a user account
+    if current_user.role != "admin":
+        abort(403)
+
+    user = User.query.get_or_404(user_id)
+
+    if user.id == current_user.id:#can't delete yourself
+        flash("You can't delete your own account.", "warning")
+        return redirect(url_for("admin_users"))
+
+    email = user.email#save email for the flash message before deleting
+
+    #delete all their photos from Cloudinary first
+    for photo in user.photos:
+        try:
+            cloudinary.uploader.destroy(photo.cloudinary_public_id)
+        except Exception as e:
+            print(f"Failed to delete photo from Cloudinary: {e}")
+
+    db.session.delete(user)#cascade will delete reviews, photos, visits
+    db.session.commit()
+
+    flash(f"User '{email}' and all their data has been permanently deleted.", "success")
+    return redirect(url_for("admin_users"))
 
 #initialize analyzer
 photo_analyzer = PhotoAnalyzer()
