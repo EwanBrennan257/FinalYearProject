@@ -22,19 +22,19 @@ class PhotoAnalyzer:
             }
             
             #analyze colors
-            print("🎨 Analyzing colors...")
+            print(" Analyzing colors...")
             colors = self._analyze_colors(image_path)
-            print(f"✅ Found {len(colors)} dominant colors")
+            print(f" Found {len(colors)} dominant colors")
             results['colors'] = colors
             
             #generate summary
             results['summary'] = self._generate_summary(colors)
             
-            print("✅ Analysis complete!")
+            print(" Analysis complete!")
             return results
             
         except Exception as e:
-            print(f"❌ Analysis failed: {e}")
+            print(f" Analysis failed: {e}")
             return {
                 'success': False,
                 'error': f'Analysis failed: {str(e)}'
@@ -81,7 +81,7 @@ class PhotoAnalyzer:
             return colors
           #if any error occurs return empty list so app won't crash  
         except Exception as e:
-            print(f"❌ Color analysis error: {e}")
+            print(f" Color analysis error: {e}")
             return []
     #checks if colors is empty if no colors are detected return message
     def _generate_summary(self, colors: List[Dict]) -> str:

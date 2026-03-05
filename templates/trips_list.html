@@ -16,7 +16,7 @@
   <div class="col-md-6 mb-3">
     <div class="card h-100">
       <div class="card-body">
-        <h5 class="card-title">📝 Create Custom Trip</h5>
+        <h5 class="card-title"> Create Custom Trip</h5>
         <p class="card-text text-muted">Plan your own route by selecting locations.</p>
         <form method="post" action="{{ url_for('trips.trips_create') }}">
           <div class="form-group">
@@ -38,7 +38,7 @@
   <div class="col-md-6 mb-3">
     <div class="card h-100 border-success">
       <div class="card-body">
-        <h5 class="card-title">🎲 Generate Random Trip</h5>
+        <h5 class="card-title"> Generate Random Trip</h5>
         <p class="card-text text-muted">Let us surprise you with random locations!</p>
         <form method="post" action="{{ url_for('trips.trips_create_random') }}">
           <div class="form-group">
@@ -52,7 +52,7 @@
               <option value="8">8 locations</option>
             </select>
           </div>
-          <button type="submit" class="btn btn-success btn-block">🎲 Surprise Me!</button>
+          <button type="submit" class="btn btn-success btn-block"> Surprise Me!</button>
         </form>
       </div>
     </div>

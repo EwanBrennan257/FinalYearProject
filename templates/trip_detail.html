@@ -8,7 +8,7 @@
 {% if stops %}
 <div class="card mb-4">
   <div class="card-body">
-    <h5 class="card-title">🗺️ Trip Route</h5>
+    <h5 class="card-title"> Trip Route</h5>
     <div id="trip-map" style="height: 450px; width: 100%; border-radius: 8px;"></div>
     <p class="text-muted mt-2 mb-0">
       <small>{{ stops|length }} location{{ 's' if stops|length != 1 else '' }} in this trip</small>
@@ -23,7 +23,7 @@
 <!-- Add location card -->
 <div class="card mb-4">
   <div class="card-body">
-    <h5 class="card-title">📍 Add a location</h5>
+    <h5 class="card-title"> Add a location</h5>
     <form method="post" action="{{ url_for('trips.trip_add_location', trip_id=trip.id) }}" class="form-inline">
       <div class="form-group mr-2 flex-grow-1">
         <select name="location_id" required class="form-control w-100">
@@ -39,7 +39,7 @@
 </div>
 
 <!-- Trip order -->
-<h4>🗺️ Trip Order</h4>
+<h4> Trip Order</h4>
 
 {% if stops %}
   {% for s in stops %}

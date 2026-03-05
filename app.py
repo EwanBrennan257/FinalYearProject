@@ -80,7 +80,7 @@ cloudinary.config(
 UPLOAD_FOLDER = os.path.join(BASE, "static", "uploads")
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER  # ← ADD THIS LINE
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER  
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 
 #create uploads folder if needed
@@ -206,7 +206,7 @@ class Review(db.Model):
     location_id = db.Column(db.Integer, db.ForeignKey("location.id"), nullable=False)#location id so system knows
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)#who wrote the review
 
-    rating = db.Column(db.Integer, nullable=False)  # 1 to 5 rating system
+    rating = db.Column(db.Integer, nullable=False)  #1 to 5 rating system
     body = db.Column(db.String(1000), nullable=False)# review text
 
     created_at = db.Column(db.DateTime, default=dt.datetime.utcnow, nullable=False)#when was the review written at
@@ -265,7 +265,7 @@ app.register_blueprint(init_events(db, Location))
 # Initialize database tables on startup
 with app.app_context():
     db.create_all()
-    print("✅ Database tables created!")
+    print(" Database tables created!")
 
     #auto promote the admin email from environment variable
     admin_email = os.getenv("ADMIN_EMAIL")
@@ -275,7 +275,7 @@ with app.app_context():
         if admin_user and admin_user.role != "admin":
             admin_user.role = "admin"
             db.session.commit()
-            print(f"✅ {admin_email} promoted to admin!")
+            print(f" {admin_email} promoted to admin!")
     
 @login_manager.user_loader#required by flask login returns corresponding user so that same user works on later requests
 def load_user(user_id):#maintains a users session
@@ -388,25 +388,25 @@ def home():
     #server rendered list because it works well for my basic knowledge of Java from last year
     #home page lists all locations, supports search
     q = (request.args.get("q") or "").strip()#get search query from URL
-
+#https://www.freecodecamp.org/news/how-to-implement-instant-search-with-flask-and-htmx/
     if q:#if they searched for something filter locations
         locations = (
-            Location.query
-            .filter(Location.name.ilike(f"%{q}%"))#case insensitive search on name
-            .order_by(Location.name)
-            .all()
+            Location.query#start a query on the locations table
+            .filter(Location.name.ilike(f"%{q}%"))#filter where the name matches the search, ilike makes it case sensitive
+            .order_by(Location.name)#sorts results alphabetically
+            .all()#run the query to get all matching results
         )
     else:#no search show all locations
-        locations = Location.query.order_by(Location.name).all()
+        locations = Location.query.order_by(Location.name).all()#all locations osrted a to z
 
-    return render_template("home.html", locations=locations, search_query=q)
+    return render_template("home.html", locations=locations, search_query=q)#render homepage pass locations in what they searched for
 
-# ── 404 Error Handler ──
+#404 Error Handler
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template("404.html"), 404
 
-# ── About Page ──
+#About Page
 @app.route("/about")
 def about():
     return render_template("about.html")
@@ -506,7 +506,7 @@ def upload_photo(slug):
             #upload to Cloudinary
             upload_result = cloudinary.uploader.upload(
                 file,
-                folder="cork_photographers",  # Organize photos in a folder
+                folder="cork_photographers",  #Organize photos in a folder
                 resource_type="auto"
             )
             
@@ -565,7 +565,7 @@ def delete_photo(photo_id):
     flash("Photo deleted.", "success")
     return redirect(url_for("location_detail", slug=slug))
 
-# ── Delete location (admin only) ──
+#Delete location admin only
 @app.route("/l/<slug>/delete", methods=["POST"])
 @login_required
 def delete_location(slug):
@@ -583,7 +583,7 @@ def delete_location(slug):
             print(f"Failed to delete photo from Cloudinary: {e}")
 
     #manually delete trip stops that reference this location
-    #these don't have cascade on the Location model so we must clean them up
+    #these don't have cascade on the Location model so clean them up
     db.session.execute(
         db.text("DELETE FROM trip_stop WHERE location_id = :lid"),
         {"lid": loc.id}
@@ -602,7 +602,7 @@ def delete_location(slug):
     flash(f"Location '{loc.name}' and all its data has been permanently deleted.", "success")
     return redirect(url_for("home"))
 
-# ── Edit location notes (admin only) ──
+#Edit location notes
 @app.route("/l/<slug>/edit-notes", methods=["GET", "POST"])
 @login_required
 def edit_location_notes(slug):
@@ -627,7 +627,7 @@ def edit_location_notes(slug):
 
     return render_template("edit_location_notes.html", location=loc)
 
-# ── Admin Panel ──
+#Admin Panel https://www.youtube.com/watch?v=NySBh_DIRlg
 @app.route("/admin")
 @login_required
 def admin_dashboard():#admin dashboard with stats and graphs
@@ -650,7 +650,7 @@ def admin_dashboard():#admin dashboard with stats and graphs
             db.func.count(User.id).label("count")#count users per day
         )
         .filter(User.created_at >= thirty_days_ago)
-        .group_by(db.func.date(User.created_at))
+        .group_by(db.func.date(User.created_at)) #https://stackoverflow.com/questions/1052148/group-by-count-function-in-sqlalchemy
         .order_by(db.func.date(User.created_at).asc())
         .all()
     )
@@ -727,7 +727,7 @@ def admin_dashboard():#admin dashboard with stats and graphs
         photo_data=photo_data,
     )
 
-# ── Admin Panel ──
+#Admin Panel
 @app.route("/admin/users")
 @login_required
 def admin_users():#admin panel to manage users
@@ -990,10 +990,10 @@ def confirm_reset_token(token: str) -> str | None:
 def send_reset_email(user: User) -> bool:
     token = generate_reset_token(user.email)#create secure token
     reset_url = url_for("reset_password", token=token, _external=True)#build reset link
-    subject = "Reset your password - Cork Photographers"
+    subject = "Reset your password - Capture Cork"
     body = (
         f"Hi,\n\n"
-        f"You requested a password reset for your Cork Photographers account.\n\n"
+        f"You requested a password reset for your Capture Cork account.\n\n"
         f"Click the link below to set a new password:\n"
         f"{reset_url}\n\n"
         f"This link expires in 1 hour.\n\n"
@@ -1001,22 +1001,22 @@ def send_reset_email(user: User) -> bool:
     )
 
     if not _mail_is_configured():#fallback if email isn't configured
-        print("\n[Email not configured] Password reset link for", user.email)
+        print("\n[Email not configured] Password reset link for", user.email)#prints the link to the terminal/ used for local testing
         print(reset_url)
         print()
         return False
 
-    try:
-        import socket
-        old_timeout = socket.getdefaulttimeout()
-        socket.setdefaulttimeout(10)
-        msg = Message(subject=subject, recipients=[user.email], body=body)
-        mail.send(msg)
-        socket.setdefaulttimeout(old_timeout)
-        return True
-    except Exception as e:
-        print("\n[Email error] Could not send reset email:", str(e))
-        print("Reset link (for debugging):", reset_url)
+    try:#to send email
+        import socket#controls timeout
+        old_timeout = socket.getdefaulttimeout()#save current timeout
+        socket.setdefaulttimeout(10)#sets a ten second timeout so it doesn't hang
+        msg = Message(subject=subject, recipients=[user.email], body=body)#create email message object
+        mail.send(msg)#send email through flask mail
+        socket.setdefaulttimeout(old_timeout)#put the timeout back to what it was before
+        return True#email sent succesfully
+    except Exception as e:#if anything goes wrong
+        print("\n[Email error] Could not send reset email:", str(e))#log error for debugging
+        print("Reset link (for debugging):", reset_url)#print link for testing
         print()
     return False
 
@@ -1036,7 +1036,7 @@ def forgot_password():
             if user and user.is_verified:
                 send_reset_email(user)
 
-            #always show the same message for security so attackers can't tell if email exists
+            #always show the same message for security so impersonators don't know if account exists
             flash(
                 "If an account exists with that email, we've sent a password reset link.",
                 "info",
@@ -1051,28 +1051,28 @@ def reset_password(token):
     email = confirm_reset_token(token)#decrypt token to get email
     if not email:#if token is invalid or expired
         flash("That reset link is invalid or has expired. Please request a new one.", "warning")
-        return redirect(url_for("forgot_password"))
+        return redirect(url_for("forgot_password"))#send them back to a request fresh link
 
-    user = User.query.filter_by(email=email).first()
+    user = User.query.filter_by(email=email).first()#look up user by email got from token
     if not user:#if user doesn't exist
         flash("Account not found.", "warning")
-        return redirect(url_for("register"))
+        return redirect(url_for("register"))#suggest they register again
 
-    message = None
+    message = None#no error message to start
 
-    if request.method == "POST":
-        password = request.form.get("password") or ""
-        confirm = request.form.get("confirm_password") or ""
+    if request.method == "POST":#if they submitted the form with their new password
+        password = request.form.get("password") or ""#get the new password
+        confirm = request.form.get("confirm_password") or ""#get the confirmation password they typed
 
-        if not password:
+        if not password:#they left it empty
             message = "Please enter a new password."
-        elif len(password) < 6:
+        elif len(password) < 6:#password is to short to be secure
             message = "Password must be at least 6 characters."
-        elif password != confirm:
+        elif password != confirm:#th two typed password don't match
             message = "Passwords do not match."
         else:
             user.set_password(password)#hash and save new password
-            db.session.commit()
+            db.session.commit()#save the change to the database
             flash("Your password has been reset. You can now log in.", "success")
             return redirect(url_for("login"))
 
@@ -1111,7 +1111,7 @@ def add_review(slug):#function handles adding reviews
     flash("Review added.", "success")#tell them it worked
     return redirect(url_for("location_detail", slug=slug))#send back to location page
 
-# ── Edit review (only the owner can edit) ──
+#Edit review
 @app.route("/review/<int:review_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit_review(review_id):
@@ -1135,45 +1135,45 @@ def edit_review(review_id):
             flash("Rating must be between 1 and 5 stars.", "warning")
             return redirect(url_for("edit_review", review_id=review_id))
 
-        if not body:  # must write something
+        if not body:  #must write something
             flash("Please write a short review comment.", "warning")
             return redirect(url_for("edit_review", review_id=review_id))
 
-        if len(body) > 1000:  # max length check
+        if len(body) > 1000:  #max length check
             flash("Review is too long (max 1000 characters).", "warning")
             return redirect(url_for("edit_review", review_id=review_id))
 
-        # update the review fields
+        #update the review fields
         review.rating = rating
         review.body = body
-        db.session.commit()  # save changes
+        db.session.commit()  #save changes
 
         flash("Review updated.", "success")
         return redirect(url_for("location_detail", slug=review.location.slug))
 
-    # GET request – show the edit form
+    #GET request show the edit form
     return render_template("edit_review.html", review=review)
 
 
-# ── Delete review (admin only) ──
+#Delete review admin only
 @app.route("/review/<int:review_id>/delete", methods=["POST"])
 @login_required
 def delete_review(review_id):
     review = Review.query.get_or_404(review_id)  # find the review or 404
 
-    # only admins can delete reviews
+    #only admins can delete reviews
     if current_user.role != "admin":
-        abort(403)  # forbidden for non-admins
+        abort(403)  #forbidden for users
 
-    slug = review.location.slug  # save slug before deleting
+    slug = review.location.slug  #save slug before deleting
 
-    db.session.delete(review)  # remove from database
-    db.session.commit()  # save the change
+    db.session.delete(review)  #remove from database
+    db.session.commit()  #save the change
 
     flash("Review deleted.", "success")
     return redirect(url_for("location_detail", slug=slug))
 
-# ── Mark location as visited ──
+#Mark location as visited
 @app.route("/l/<slug>/visit", methods=["POST"])
 @login_required
 def add_visit(slug):#handles marking a location as visited
@@ -1214,7 +1214,7 @@ def add_visit(slug):#handles marking a location as visited
     return redirect(url_for("location_detail", slug=slug))
 
 
-# ── Edit a visit note ──
+#Edit a visit note
 @app.route("/visit/<int:visit_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit_visit(visit_id):#allows user to update their visit note and date
@@ -1224,17 +1224,17 @@ def edit_visit(visit_id):#allows user to update their visit note and date
     if visit.user_id != current_user.id:
         abort(403)
 
-    if request.method == "POST":
-        date_raw = (request.form.get("visited_date") or "").strip()
-        note = (request.form.get("note") or "").strip()
+    if request.method == "POST":#if they submitted the edit form
+        date_raw = (request.form.get("visited_date") or "").strip()#get the date they entered and clean it up
+        note = (request.form.get("note") or "").strip()#get the note they entered and clean it up
 
-        try:
-            visited_date = dt.datetime.strptime(date_raw, "%Y-%m-%d").date()
-        except ValueError:
+        try:#try to convert the date strign into an actual date object
+            visited_date = dt.datetime.strptime(date_raw, "%Y-%m-%d").date()#parse it in year month day
+        except ValueError:#if they enter something that isn't a valid date
             flash("Please enter a valid date.", "warning")
-            return redirect(url_for("edit_visit", visit_id=visit_id))
+            return redirect(url_for("edit_visit", visit_id=visit_id))#send them back to the form
 
-        if visited_date > dt.date.today():
+        if visited_date > dt.date.today():#can't say they visited somewhere in the future
             flash("Visit date can't be in the future.", "warning")
             return redirect(url_for("edit_visit", visit_id=visit_id))
 
@@ -1242,9 +1242,9 @@ def edit_visit(visit_id):#allows user to update their visit note and date
             flash("Note is too long (max 1000 characters).", "warning")
             return redirect(url_for("edit_visit", visit_id=visit_id))
 
-        visit.visited_date = visited_date
-        visit.note = note
-        db.session.commit()
+        visit.visited_date = visited_date#update the date on the visit record
+        visit.note = note#update the note on the visit record
+        db.session.commit()#save the changes to the database
 
         flash("Visit updated.", "success")
         return redirect(url_for("location_detail", slug=visit.location.slug))
@@ -1252,31 +1252,31 @@ def edit_visit(visit_id):#allows user to update their visit note and date
     return render_template("edit_visit.html", visit=visit)
 
 
-# ── Remove a visit ──
-@app.route("/visit/<int:visit_id>/delete", methods=["POST"])
+#Remove a visit
+@app.route("/visit/<int:visit_id>/delete", methods=["POST"])#only accept post since we're deleting something
 @login_required
 def delete_visit(visit_id):#allows user to unmark a location as visited
-    visit = Visit.query.get_or_404(visit_id)
+    visit = Visit.query.get_or_404(visit_id)#find the visit or show 404 if it doesn't exist
 
-    if visit.user_id != current_user.id:
+    if visit.user_id != current_user.id:#only person who created it can delete it 
         abort(403)
 
-    slug = visit.location.slug
-    db.session.delete(visit)
-    db.session.commit()
+    slug = visit.location.slug#save the location slug before we delte it so we can redirect back
+    db.session.delete(visit)#remove the visit from the database
+    db.session.commit()#save the change
 
     flash("Visit removed.", "success")
     return redirect(url_for("location_detail", slug=slug))
 
 
-# ── My Visits page — shows all locations the user has visited ──
+#My Visits page 
 @app.route("/my-visits")
 @login_required
 def my_visits():#shows all locations the current user has marked as visited
-    visits = (
-        Visit.query.filter_by(user_id=current_user.id)
-        .order_by(Visit.visited_date.desc())
-        .all()
+    visits = (#query the database for this users visits
+        Visit.query.filter_by(user_id=current_user.id)#only get visits belonging to the logged in user
+        .order_by(Visit.visited_date.desc())#show most recent visits first
+        .all()#get all of them
     )
     return render_template("my_visits.html", visits=visits)
 

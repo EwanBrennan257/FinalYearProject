@@ -6,9 +6,9 @@
 
 <div class="mb-3">
   {% if event.is_ended() %}
-    <span class="badge badge-secondary p-2">✅ Ended</span>
+    <span class="badge badge-secondary p-2"> Ended</span>
   {% else %}
-    <span class="badge badge-primary p-2">📅 Upcoming</span>
+    <span class="badge badge-primary p-2"> Upcoming</span>
   {% endif %}
 
   <span class="ml-2">
@@ -30,7 +30,7 @@
 {% if stops %}
 <div class="card mb-4">
   <div class="card-body">
-    <h5 class="card-title">🗺️ Event Route</h5>
+    <h5 class="card-title"> Event Route</h5>
     <div id="event-map" style="height: 450px; width: 100%; border-radius: 8px;"></div>
     <p class="text-muted mt-2 mb-0">
       <small>{{ stops|length }} location{{ 's' if stops|length != 1 else '' }} in this event</small>
@@ -100,12 +100,12 @@
       {# Complete / Reopen button for the creator #}
       {% if not event.is_ended() %}
         <form method="post" action="{{ url_for('events.event_complete', event_id=event.id) }}" style="display:inline;" onsubmit="return confirm('Mark this event as completed?');">
-          <button type="submit" class="btn btn-outline-success btn-sm">✅ Mark as Completed</button>
+          <button type="submit" class="btn btn-outline-success btn-sm"> Mark as Completed</button>
         </form>
       {% elif event.status == 'completed' %}
         {# Only show reopen if it was manually completed, not just expired by time #}
         <form method="post" action="{{ url_for('events.event_reopen', event_id=event.id) }}" style="display:inline;">
-          <button type="submit" class="btn btn-outline-info btn-sm">🔄 Reopen Event</button>
+          <button type="submit" class="btn btn-outline-info btn-sm"> Reopen Event</button>
         </form>
       {% endif %}
     {% endif %}

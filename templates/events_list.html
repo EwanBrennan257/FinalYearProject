@@ -4,7 +4,7 @@
 {% block content %}
 <div class="jumbotron p-3 p-md-5 text-white rounded bg-dark">
   <div class="col-md-10 px-0">
-    <h1 class="display-4">📅 Community Events</h1>
+    <h1 class="display-4"> Community Events</h1>
     <p class="lead my-3">
       Photography meetups and events around Cork.
     </p>
@@ -26,7 +26,7 @@
         <div class="d-flex w-100 justify-content-between">
           <h5 class="mb-1">{{ e.title }}</h5>
           {% if e.is_ended() %}
-            <span class="badge badge-secondary badge-pill">✅ Ended</span>
+            <span class="badge badge-secondary badge-pill"> Ended</span>
           {% else %}
             <span class="badge badge-primary badge-pill">
               {{ e.event_date.strftime("%b %d, %Y") }}

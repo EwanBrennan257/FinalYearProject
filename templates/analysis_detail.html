@@ -10,7 +10,7 @@
   </ol>
 </nav>
 
-<h2 class="mb-4">🎨 Photo Analysis Results</h2>
+<h2 class="mb-4"> Photo Analysis Results</h2>
 
 <div class="row">
   <!-- Photo -->
@@ -26,7 +26,7 @@
         
         {% if analysis.properties and analysis.properties.summary %}
           <div class="alert alert-info mb-3">
-            <strong>📊 Summary:</strong> {{ analysis.properties.summary }}
+            <strong> Summary:</strong> {{ analysis.properties.summary }}
           </div>
         {% endif %}
       </div>
@@ -40,7 +40,7 @@
     {% if analysis.colors and analysis.colors|length > 0 %}
     <div class="card mb-3">
       <div class="card-header bg-success text-white">
-        <strong>🎨 Color Breakdown</strong>
+        <strong> Color Breakdown</strong>
       </div>
       <div class="card-body">
         {% for color in analysis.colors %}
@@ -76,7 +76,7 @@
     </div>
     {% else %}
     <div class="alert alert-warning">
-      <strong>⚠️ No Colors Detected</strong><br>
+      <strong> No Colors Detected</strong><br>
       Unable to analyze colors for this image.
     </div>
     {% endif %}
@@ -93,7 +93,7 @@
         style="display: inline;"
         onsubmit="return confirm('Are you sure you want to delete this analysis?');">
     <button type="submit" class="btn btn-danger">
-      🗑️ Delete Analysis
+       Delete Analysis
     </button>
   </form>
 </div>
