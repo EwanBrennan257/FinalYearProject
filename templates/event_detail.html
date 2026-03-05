@@ -44,14 +44,16 @@
 <!-- Creator controls: add locations -->
 {% if current_user.is_authenticated and current_user.id == event.user_id %}
   <h3>Add a location</h3>
-  <form method="post" action="{{ url_for('events.event_add_location', event_id=event.id) }}">
-    <select name="location_id" required>
-      <option value="">-- select a location --</option>
-      {% for loc in locations %}
-        <option value="{{ loc.id }}">{{ loc.name }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit">Add</button>
+  <form method="post" action="{{ url_for('events.event_add_location', event_id=event.id) }}" class="d-flex align-items-center mb-3">
+    <div class="form-group mr-2 flex-grow-1 mb-0">
+      <select name="location_id" required class="form-control">
+        <option value="">-- select a location --</option>
+        {% for loc in locations %}
+          <option value="{{ loc.id }}">{{ loc.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">+ Add</button>
   </form>
   <hr>
 {% endif %}
