@@ -406,6 +406,12 @@ def home():
 def page_not_found(e):
     return render_template("404.html"), 404
 
+# ── 413 Error Handler ──
+@app.errorhandler(413)
+def file_too_large(e):
+    flash("File is too large. Cloudinary only supports uploads up to 5MB. Please choose a smaller image.", "warning")
+    return redirect(request.referrer or url_for("home"))
+
 #About Page
 @app.route("/about")
 def about():
